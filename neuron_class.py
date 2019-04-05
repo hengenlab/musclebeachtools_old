@@ -94,7 +94,7 @@ class neuron(object):
                 if len(amplitude_files)>0:
                     self.amplitudes=np.load(amplitude_files[0])
                 if has_aqual:
-                    self.auto_qual_array = np.load(aq[0])
+                    self.auto_qual_array = np.load(aq[0])[peak_ch != 0]
                 if has_squal:
                     self.scrubbed_qual_array = np.load(sq[0])
                     self._scqu_file = sq[0]
@@ -109,7 +109,7 @@ class neuron(object):
             else:
                 #pulls out the unique cluster numbers
                 self.unique_clusters = np.unique(curr_clust)
-                clust_idx = self.unique_clusters[int(cell_idx-1)]
+                clust_idx = self.unique_clusters[int(cell_idx)]
                 
                 #pulls out all indices of that cluster spiking based on cluster index and spike clusters
                 spk_idx = np.where(curr_clust[0] == clust_idx)[0]
@@ -118,10 +118,12 @@ class neuron(object):
                 #if there are peak channels this loads them into the instance variables
                 #eventually this will be determined by day so that's why it's loaded here
                 if has_peak_files:
-                    self.peak_chans = peak_ch[int(cell_idx-1)]
+                    peak_ch_no0 = peak_ch[peak_ch!= 0]
+                    self.peak_chans = peak_ch_no0[int(cell_idx)]
 
             if has_twf:
-                self.wf_temp = w[cell_idx-1]
+                w_real = np.delete(w,np.where(peak_ch == 0)[0],0)
+                self.wf_temp = w_real[cell_idx]
                 bottom      = np.argmin(self.wf_temp)
                 top         = np.argmax(self.wf_temp[bottom:]) + bottom
                 np_samples  = top - bottom
@@ -149,18 +151,18 @@ class neuron(object):
 
             #QUALITY 
             if has_squal:
-                if np.isnan(self.scrubbed_qual_array[cell_idx-1]):
+                if np.isnan(self.scrubbed_qual_array[cell_idx]):
                     if has_aqual:
-                        self.quality = self.auto_qual_array[cell_idx-1][0]
+                        self.quality = self.auto_qual_array[cell_idx][0]
                         print("\nScrubbed: NO")
                         print("Quality rating (automated): ", self.quality)
                 else:
-                    self.quality = self.scrubbed_qual_array[cell_idx-1][0]
+                    self.quality = self.scrubbed_qual_array[int(cell_idx)]
                     print('\nScrubbed: YES')
                     print("Quality set at: ", self.quality)
             else:
                 if has_aqual:
-                    self.quality = self.auto_qual_array[cell_idx-1][0]
+                    self.quality = self.auto_qual_array[int(cell_idx)]
                     print("\nQuality rating (automated): ", self.quality)
                 else:
                     print("\nNo automated or scrubbed quality rating, check the quality to set the quality ")
