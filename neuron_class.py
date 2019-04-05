@@ -12,13 +12,12 @@ from IPython.core.debugger import Tracer
 
 class neuron(object):
     '''Create instances (objects) of the class neuron ''' 
-    def __init__(self, datafile='/Volumes/HlabShare/Clustering_Data/EAB00040/ts/', cell_idx=1, datatype='npy', start_day = 0, end_day = 1, silicon=False):
+    def __init__(self, datafile='/Volumes/HlabShare/Clustering_Data/EAB00027/t_3-25', datatype='npy', cell_idx = 1, start_day=0, end_day=1, silicon=False):
         if datatype == 'npy':
+
             print('You are using WashU data')
             fs = 25000
             print('working on neuron '+str(cell_idx)+'\n')
-
-            
 
             # going to folder that contains processed data if it exists
             try:
@@ -27,11 +26,9 @@ class neuron(object):
                 print("*** Data File does not exist *** check the path")
                 return
 
-
-            #if the recording is solicon pull the files based on input channel 
-            #pull all of the relevant files with silicon recording
+           #SORTS DATA FILES
             if(silicon):
-                ch = input("What channel would you like to look at?")
+                ch = input("What probe would you like to look at?")
                 f="*chg_"+str(ch)+"*"
                 channelFiles=np.sort(glob.glob(f))
                 #sorts spikes and clusters
@@ -44,22 +41,21 @@ class neuron(object):
                 wavefiles=[channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*waveform*.npy"))]
                 templates_all=[channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*templates*.npy"))]
                 #since there are multiple files that have "templates" at the end this pulls out only the ones we want
-                templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number*.npy")]
+                templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
                 #checks for amplitude files
                 amplitude_files = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*amplitudes*.npy"))]
                 #this checks for an automated quality array from the clustering algorithm
                 aq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*qual*.npy"))]
                 #looks for scrubbed quality and loads if possible
                 sq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*scrubbed*.npy"))]
-                #print("peakfiles: ", peakfiles, "\nclustfiles: ", clustfiles, "\nspikefiles: ", spikefiles, "\nwavefiles: ", wavefiles)
-            #pull all relevant files in non-silicon recordings
+            #pulls data if not silicon
             else:
                 #sorts spikes and clusters
                 spikefiles = np.sort(glob.glob("*spike_times*.npy"))
                 clustfiles = np.sort(glob.glob("*spike_clusters*.npy"))
                 #sorts any peak channel files found in folder
                 peakfiles = np.sort(glob.glob("*max_channel*.npy"))
-                if(len(peakfiles)==0):
+                if len(peakfiles)==0:
                     peakfiles=np.sort(glob.glob("*peakchannel*.npy"))
                 #peakfiles.extend(np.sort(glob.glob("*max_channel*.npy")))
                 #sorts wavefiles in two forms, named "waveform" or "templates"
@@ -73,191 +69,57 @@ class neuron(object):
                 aq = np.sort(glob.glob("*qual*.npy"))
                 #looks for scrubbed quality and loads if possible
                 sq = np.sort(glob.glob("*scrubbed*.npy"))
-            
-            if len(peakfiles)==0:
-                #if there are no peak channel files, set the flag to False and print
-                has_peak_files = False
-                print("Peak Channels: No")
-            else:
-                #if there are files, set the flag to True and print
-                 print("Peak Channels: Yes")
-                 has_peak_files = True
-
-            
-
-            if len(wavefiles)==0 and len(templates_wf)==0:
-                #if there are none, set flag to False and print
-                has_twf=False
-                print("Waveform array: No")
-            elif len(wavefiles)>0:
-                #if the format was "wavefiles" then set flag to True and load those files
-                has_twf=True
-                w=np.load(wavefiles[0])
-                print("Waveform array: Yes")
-            else:
-                #if the format is "templates" set flag to True and load those files
-                has_twf=True
-                w=np.load(templates_wf[0])
-                print("Waveform array: Yes")
-            
-
-            if len(amplitude_files) > 0 :
-                #if there are amplitude files then set the instance variable and print
-                print("loading amplitudes")
-                self.amplitudes = np.load(glob.glob("*amplitudes*.npy")[0])
 
 
+            has_peak_files = not len(peakfiles)==0
+            has_twf = not (len(wavefiles)==0 and len(templates_wf)==0)
+            has_aqual = not len(aq)==0
+            has_squal = not len(sq)==0
 
-            #we don't have keys yet so we can't track cells across multiple days
-            if end_day-start_day > 1:
+            #eventually length will be calculated differently but for now length is just 0
+            #see original neuron_class for length calculation with keys
+            length = np.zeros(end_day)
 
-                #KEYS
-                keys = np.load(glob.glob("new_key*")[0])
-                length_start = [(spikefiles[i].find('length_')+7) for i in range(start_day, end_day)]
-                length_end = [(spikefiles[i].find('_p')) for i in range(start_day, end_day)]
-                length = [int(spikefiles[i][length_start[i]:length_end[i]]) for i in range(start_day, end_day)]
-                length = np.append([0], length)
-                length = np.cumsum(length)
-
-               
-            else:
-                #in order to account for having to add the length once we have keys
-                length = np.zeros(end_day)
-
-
-            #try to load clusters
+            #LOADS DATA
             try:
-                print('loading clusters')
+                print("Loading files...")
                 curr_clust = [np.load(clustfiles[i]) for i in range(start_day, end_day)]
-            except IndexError:
-                print('spike cluster files do not exist for that day range')
-                return
-
-            #try to load spikes
-            try:
-                print('loading spikes')
-
-                '''length[i] not necessary for single day ranges but will be for multiple days'''
                 curr_spikes = [np.load(spikefiles[i])+length[i] for i in range(start_day, end_day)]
-                
-            except IndexError:
-                print('spike time files do not exist for that day range')
-                return
-
-            #load peak channels if availible 
-            if has_peak_files:
-                try:
-                    print('loading peak channels')
+                if has_peak_files:
                     peak_ch = np.concatenate([np.load(peakfiles[i])for i in range(start_day, end_day)])
-                except IndexError:
-                    print('peak channel files do not exist for that day range')
-                    return
+                if has_twf and len(wavefiles)==0:
+                    w=np.load(templates_wf[0])
+                elif has_twf:
+                    w=np.load(wavefiles[0])
+                if len(amplitude_files)>0:
+                    self.amplitudes=np.load(amplitude_files[0])
+                if has_aqual:
+                    self.auto_qual_array = np.load(aq[0])
+                if has_squal:
+                    self.scrubbed_qual_array = np.load(sq[0])
+                    self._scqu_file = sq[0]
+            except IndexError:
+                print("files do not exist for that day range")
 
-            
-            #this needs to be initialized here in order to be used in the next block
-            self.peak_chans = np.zeros(end_day-start_day)
 
-            #again this part isn't ready yet since we don't have keys
+
             if end_day-start_day > 1:
-                spiketimes = [] 
-                clusters = np.load(glob.glob('*unique_clusters*.npy')[0])
-                
-                for f in range(start_day, end_day):
-                    
-                    #KEYS
-                    key_val = keys[f, int(cell_idx-1)]
-                    clust_idx = clusters[int(key_val)]
-                    spk_idx = np.where(curr_clust[f] == clust_idx)[0]  
-                    spks = np.concatenate(curr_spikes[f][spk_idx])/fs 
-                    if has_peak_files:
-                        self.peak_chans[f] = peak_ch[f][int(key_val)]
-                    spiketimes.append(spks)
-                spiketimes = np.concatenate(spiketimes)
-
-                
+                print("this cannot be done yet")
+                #can't do this yet, see past code for an idea of how it will be done
             else:
-                #unique_clust_files=np.sort(glob.glob('*unique_clusters*.npy'))
-                #clusters=[np.load(unique_clust_files[i]) for i in range(start_day, end_day)]
-
                 #pulls out the unique cluster numbers
-                self.unique_clusters = [np.unique(curr_clust)]
-                try:
-                    clust_idx = self.unique_clusters[0][int(cell_idx-1)]
-                except IndexError:
-
-                    #this error is very general, there are multiple things that could be happening
-                    #most likely there is an issue with the way clusters is being indexed into
-                     print("cluster file index error")
-                     return
+                self.unique_clusters = np.unique(curr_clust)
+                clust_idx = self.unique_clusters[int(cell_idx-1)]
+                
                 #pulls out all indices of that cluster spiking based on cluster index and spike clusters
                 spk_idx = np.where(curr_clust[0] == clust_idx)[0]
                 #loads all times at those indicies
                 spiketimes = curr_spikes[0][spk_idx]/fs
                 #if there are peak channels this loads them into the instance variables
+                #eventually this will be determined by day so that's why it's loaded here
                 if has_peak_files:
                     self.peak_chans = peak_ch[int(cell_idx-1)]
 
-
-
-            #QUALITY STUFF
-            #everything is set up for only one day right now, should be changed eventually
-            #looks for automated quality array and loads if possible
-
-            
-            if len(aq)==0:
-                #if there is none set the Flag and print
-                print ('No automated quality file')
-                self.has_aqual=False
-            else:
-                #if there is an array then set the Flag and load it into the instance variable
-                self.has_aqual=True
-                self.auto_qual_array = np.load(aq[0])
-
-
-            
-            if len(sq)>0:
-                #set the flag and load it to the instance varaible
-                self.has_squal = True
-                #uneccisary but it gets used later so currently keeping it
-                scrubbed_qual=np.load(sq[0])
-                self.scqu_file = sq[0]
-                self.scrubbed_qual_array = np.load(sq[0])
-
-                #if that particular cell hasn't been scrubbed yet, print automated quality, otherwise print the scrubbed quality
-                #set the quality based on the scrubbbed array if it's scrubbed, otherwise set it to automated
-                if np.isnan(self.scrubbed_qual_array[cell_idx-1]):
-                    if self.has_aqual:
-                        self.quality = self.auto_qual_array[cell_idx-1][0]
-                        print("\nScrubbed: NO")
-                        print("\nQuality rating (automated): ", self.quality)
-                else:
-                    self.quality = self.scrubbed_qual_array[cell_idx-1][0]
-                    print('\nScrubbed: YES')
-                    print("\nQuality set at: ", self.quality)
-            
-            #if there is no scrubbed quality, print automated quality, otherwise set the quality to 0       
-            else:
-                self.has_squal = False
-                #if there is an automated quality file but no scrubbed file then print the automated quality
-                #if there's neither than set the quality to 0
-                if self.has_aqual:
-                    self.quality = self.auto_qual_array[cell_idx-1][0]
-                    print("\nQuality rating (automated): ", self.quality)
-                else:
-                    print("\nNo automated quality rating, check the quality to set a scrubbed quality rating")
-                    self.quality = 0
-                
-                
-
-           #sets the time instance variables to all the spike times
-            self.time = np.concatenate(spiketimes)
-            #sets on an off time based on first and last numbers in the spike time array
-            self.onTime = np.array([self.time[0]])
-            self.offTime = np.array([self.time[-1]])
-
-            
-        
-            #if there is templatewf files, set it up
             if has_twf:
                 self.wf_temp = w[cell_idx-1]
                 bottom      = np.argmin(self.wf_temp)
@@ -272,10 +134,38 @@ class neuron(object):
                     self.cell_type  = 'RSU'
                 if self.neg_pos_time <0.4:
                     self.cell_type = 'FS' 
-              
 
-            #this is the flag to tell if there is WF array information later    
-            self.wf = has_twf
+            self._has_twf = has_twf
+            self._has_squal = has_squal
+
+            #sets the time instance variables to all the spike times
+            self.time = np.concatenate(spiketimes)
+            #sets on an off time based on first and last numbers in the spike time array
+            self.onTime = np.array([self.time[0]])
+            self.offTime = np.array([self.time[-1]])
+
+            print("\nData set information:\nPeak Channels: {}\nWaveform Template: {}\nNumber of clusters: {}".format(has_peak_files, has_twf, len(self.unique_clusters)))
+
+
+            #QUALITY 
+            if has_squal:
+                if np.isnan(self.scrubbed_qual_array[cell_idx-1]):
+                    if has_aqual:
+                        self.quality = self.auto_qual_array[cell_idx-1][0]
+                        print("\nScrubbed: NO")
+                        print("Quality rating (automated): ", self.quality)
+                else:
+                    self.quality = self.scrubbed_qual_array[cell_idx-1][0]
+                    print('\nScrubbed: YES')
+                    print("Quality set at: ", self.quality)
+            else:
+                if has_aqual:
+                    self.quality = self.auto_qual_array[cell_idx-1][0]
+                    print("\nQuality rating (automated): ", self.quality)
+                else:
+                    print("\nNo automated or scrubbed quality rating, check the quality to set the quality ")
+                    self.quality = 0
+
 
         #Brandeis data
         else:
@@ -689,8 +579,8 @@ class neuron(object):
 
         
         numGraphs=2
-        #self.wf=False
-        if self.wf: 
+        
+        if self._has_twf: 
             numGraphs = 3
 
 
@@ -711,7 +601,7 @@ class neuron(object):
 
 
         # PLOT THE MEAN TRACE (template waveform):
-        if self.wf:
+        if self._has_twf:
             ax1.text(0,.96, "Cell type: " + self.cell_type, transform=ax1.transAxes, color='black', fontsize='medium')
             sns.set(style="ticks")
             sns.despine()
@@ -798,10 +688,10 @@ class neuron(object):
                     #always update quality if the save_update flag is true
                     self.quality=g
 
-                    if self.has_squal:
+                    if self._has_squal:
                         #if there is already a scrubbed quality array - update the index of the cell
                         self.scrubbed_qual_array[self.cell_idx-1] = self.quality
-                        np.save(self.scqu_file, self.scrubbed_qual_array)
+                        np.save(self._scqu_file, self.scrubbed_qual_array)
                     else:
                         #make array if there isn't one already
 
