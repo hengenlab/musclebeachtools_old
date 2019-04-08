@@ -12,7 +12,7 @@ from IPython.core.debugger import Tracer
 
 class neuron(object):
     '''Create instances (objects) of the class neuron ''' 
-    def __init__(self, datafile='/Volumes/HlabShare/Clustering_Data/EAB00027/t_3-25', datatype='npy', cell_idx = 1, start_day=0, end_day=1, silicon=False):
+    def __init__(self, datafile='/Volumes/HlabShare/Clustering_Data/EAB00027/t_3-25', datatype='npy', cell_idx = 0, start_day=0, end_day=1, silicon=False):
         if datatype == 'npy':
 
             print('You are using WashU data')
@@ -692,13 +692,13 @@ class neuron(object):
 
                     if self._has_squal:
                         #if there is already a scrubbed quality array - update the index of the cell
-                        self.scrubbed_qual_array[self.cell_idx-1] = self.quality
+                        self.scrubbed_qual_array[self.cell_idx] = self.quality
                         np.save(self._scqu_file, self.scrubbed_qual_array)
                     else:
                         #make array if there isn't one already
 
                         self.scrubbed_qual_array = np.full(np.shape(self.unique_clusters), np.NaN)
-                        self.scrubbed_qual_array[self.cell_idx-1] = self.quality
+                        self.scrubbed_qual_array[self.cell_idx] = self.quality
                         np.save("scrubbed_quality.npy", self.scrubbed_qual_array)
 
                 flag = 1
