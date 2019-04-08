@@ -153,7 +153,7 @@ class neuron(object):
             if has_squal:
                 if np.isnan(self.scrubbed_qual_array[cell_idx]):
                     if has_aqual:
-                        self.quality = self.auto_qual_array[cell_idx][0]
+                        self.quality = self.auto_qual_array[cell_idx]
                         print("\nScrubbed: NO")
                         print("Quality rating (automated): ", self.quality)
                 else:
