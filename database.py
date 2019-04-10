@@ -42,27 +42,28 @@ while i < chances_to_give + 1:
 
 # these are the fields that the user needs to manually enter prior to uploading anything into the database.
 # implant (primary key) # THIS IS THE PRIMARY KEY AND WILL AUTOMATICALLY POPULATE WITH A UNIQUE VALUE
-animal_id           = input ('initials plus 5 digits, ex: abc12345')
-species             = input ('rat or mouse')
-sex                 = input ('m or f')
-region              = input ('common lab abbreviation, e.g., v1, v1m, scn, rsc, s1')
-strain              = input ('ex. c57b6, le (long evans), sd (sprague dawley)')
-genotype            = input ('ex. shank3+- or shank3 --')
-daq_system          = input ('ecube or intan')
-n_channels          = input ('total count in this implant, e.g., 64')
-n_sites             = input ('total number of sites on this animal')
-implant_date        = input ('(MMDDYYYY)')
-expt_start          = input ('(MMDDYYYY)')
-expt_end            = input ('(MMDDYYYY)')
-age_t0              = input ('(postnatal day e.g., 60)')
-surgeon             = input ('(3 letter initial, e.g., abc)')
-video_binary        = input ('yes video = 1, no video = 0')
-light_binary        = input ('L/D timestamps, 1 or 0')
-sound_binary        = input ('microphone data, 1 or 0')
-sw_binary           = input ('sleep scoring? 1 or 0')
-implant_coordinates = input ('stereotaxic coordinates (lateral, then bregma), e.g., -1.0, 2.2')
-electrode_type      = input ('e.g., mit silicon, carbon, tetrode')
-headstage           = input ('e.g., hs640, hs64, intan32, intan64')
+animal_id           = input ('Animal ID (initials plus 5 digits, ex: abc12345)  ')
+experiment_id       = input ('Experiment ID code (look up in lab file, or create)  ')
+species             = input ('Species (rat or mouse, r/m)  ')
+sex                 = input ('Sex (m or f)  ')
+region              = input ('Implant region (common lab abbreviation, e.g., v1, v1m, scn, rsc, s1)  ')
+strain              = input ('Animal Strain (ex. c57b6, le (long evans), sd (sprague dawley))  ')
+genotype            = input ('Animal genotype (ex. wt, shank3+-, shank3 --)  ')
+daqsys              = input ('Data Acq. System (ecube or intan)  ')
+n_channels          = input ('Number of channels in this implant, e.g., 64  ')
+n_sites             = input ('Total number of implant sites in this animal  ')
+implant_date        = input ('Implant date (MMDDYYYY)  ')
+expt_start          = input ('Experiment start (MMDDYYYY)  ')
+expt_end            = input ('Experiment end (MMDDYYYY)  ')
+age_t0              = input ('Age at start of experiment (postnatal day e.g., 60)  ')
+surgeon             = input ('Surgeon (3 letter initial, e.g., abc)  ')
+video_binary        = input ('Video? (yes video = 1, no video = 0)  ')
+light_binary        = input ('L/D timestamps? (1 or 0)  ')
+sound_binary        = input ('Microphone data? (1 or 0)  ')
+sw_binary           = input ('Sleep scoring? (1 or 0)  ')
+implant_coordinates = input ('Stereotaxic coordinates (lateral, then bregma), e.g., -1.0, 2.2  ')
+electrode_type      = input ('Electrode type e.g., mit silicon, carbon, tetrode  ')
+headstage           = input ('Headstage e.g., hs640, hs64, intan32, intan64  ')
 
 # write in a check for this. if the user wants to, s/he should be able to go back and edit before committing the info to the database.
 
@@ -70,9 +71,13 @@ headstage           = input ('e.g., hs640, hs64, intan32, intan64')
 # upload this into the database:
 #  - - - - - - - - - - - - add data to a table - - - - - - - - - - - - -
 ## defining the Query
-query = "INSERT INTO implant_db (animal_id, species, sex, region, strain, genotype, daq_system, n_channels, n_sites, implant_date, expt_start, expt_end, age_t0, surgeon, video_binary, light_binary, sound_binary, sw_binary, implant_coordinates, electrode_type, headstage ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+
+# NEED TO BUILD OFF OF THIS... cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), strain VARCHAR(255), sex VARCHAR(1), genotype VARCHAR(255), region VARCHAR(255), daqsys VARCHAR(255), electrode VARCHAR(255), nchan TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 TINYINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), headstage VARCHAR(255) ) "     )
+
+
+query = "INSERT INTO implant_db (animal_id, experiment_id, species, sex, region, strain, genotype, daqsys, n_channels, n_sites, implant_date, expt_start, expt_end, age_t0, surgeon, video_binary, light_binary, sound_binary, sw_binary, implant_coordinates, electrode_type, headstage ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 ## storing values in a variable
-values = (animal_id, species, sex, region, strain, genotype, daq_system, n_channels, n_sites, implant_date, expt_start, expt_end, age_t0, surgeon, video_binary, light_binary, sound_binary, sw_binary, implant_coordinates, electrode_type, headstage)
+values = (animal_id, experiment_id, species, sex, region, strain, genotype, daqsys, nchan, n_sites, implant_date, expt_start, expt_end, age_t0, surgeon, video_binary, light_binary, sound_binary, sw_binary, implant_coordinates, electrode_type, headstage)
 
 ## executing the query with values
 cursor.execute(query, values)
