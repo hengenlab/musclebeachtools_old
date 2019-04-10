@@ -1,4 +1,3 @@
-#import mysql.connector as my
 import pymysql
 # connect to the clustering database
 rootpwd = "%6m5kq2FymMXy5t3"
@@ -8,7 +7,7 @@ db = pymysql.connect(user   = "root",
                             host    = "localhost",
                             database= "clusteringdb")
 
-
+#import mysql.connector as my
 # db = my.connect(
 #     host        = "localhost",
 #     user        = "root",
@@ -76,6 +75,7 @@ def submit_implant():
     import os.path as op
     import shutil
     import csv
+    import pandas as pd
     # Tkinter
     root = Tk()
     root.withdraw()
@@ -87,7 +87,7 @@ def submit_implant():
         i = i + 1
         dir_phy = filedialog.askdirectory( title = "Select output directory")
         yes_no = messagebox.askyesno( title = "Are You Sure?",
-                                     message = Output directory : '+str(dir_phy) )
+                                     message = 'Output directory : '+str(dir_phy) )
         if yes_no:
             print( "Current working directory is ", dir_phy )
             #os.chdir(dir_phy)
@@ -180,36 +180,12 @@ def submit_implant():
 
     query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
     cursor.execute(query, target_val_pair)
+    uniqueid = cursor.execute('SELECT last_insert_id()')
 
+    # add the fodler location and the implant barcode ID (unique, generated on commit)
+    target_val_pair.update({'location':dir_phy, 'implant_id':uniqueid})
 
-
-    # look at everything in the table, like, all of the data
-    query = "SELECT * FROM implant_db"
-
-    ## getting records from the table
-    cursor.execute(query)
-
-    ## fetching all records from the 'cursor' object
-    records = cursor.fetchall()
-
-    #query = "INSERT INTO implant_db (animal_id, experiment_id, species, sex, region, strain, genotype, daqsys, nchan, chan_range, n_implant_sites, implant_date, expt_start, expt_end, age_t0, surgeon, video_binary, light_binary, sound_binary, sleep_state_binary, implant_coordinates, electrode, headstage ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
-    ## storing values in a variable
-
-    #values = (animal_id, experiment_id, species, sex, region, strain, genotype, daqsys, nchan, chanrange, n_sites, implant_date, expt_start, expt_end, age_t0, surgeon, video_binary, light_binary, sound_binary, sw_binary, implant_coordinates, electrode_type, headstage)
-
-    ## executing the query with values
-
-
-
-csvData = [ ['animal_id', animal_id],['species', species], ['sex', sex], ['region', region], ['strain', strain], ['genotype', genotype], ['daq_system', daq_system], ['n_channels', nchan], ['n_sites', n_sites], ['implant_date', implant_date], ['expt_start', expt_start], ['expt_end', expt_end], ['age_t0', age_t0], ['surgeon', surgeon], ['video_binary', video_binary], ['light_binary', light_binary], ['sound_binary', sound_binary], ['sw_binary', sw_binary], ['implant_coordinates', implant_coordinates], ['electrode', electrode_type], ['headstage', headstage] ]
-
-
-
-#- - - - - - - - - - - - - - - - - insert data into table - - - - - - - - - - -
-sql_insert_query = " INSERT INTO `clusters`(`id`, `name`, `birth_date`, `age`) VALUES (1,'Scott','2018-04-11', 26) "
-
-with open('person.csv', 'w') as csvFile:
-    writer = csv.writer(csvFile)
-    writer.writerows(csvData)
-
-csvFile.close()
+    # write to a pandas dataframe, use this to write to a .csv file easily.
+    df = pd.DataFrame.from_dict(data=target_val_pair, orient='index')
+    fn = dir_phy + '/' + animal_id + '_' + region + '_' + str(n_sites) + '_sites.csv'
+    (pd.DataFrame.from_dict(data=target_val_pair, orient='index').to_csv(fn, header=False))
