@@ -68,71 +68,238 @@ def createclusterstable():
 
 def submit_implant():
     ''' This function asks a user to input the implant/region info about each electrode used in chronic electrophys recordings. The function will write a csv file into the folder that contains the relevant dataset. The csv file will be uploaded into the lab's mysql database into the implant_db table in the clusters database.'''
-    from tkinter import filedialog
-    from tkinter import Tk
-    from tkinter import messagebox
+    # from tkinter import filedialog
+    # from tkinter import Tk
+    # from tkinter import messagebox
     import os
     import os.path as op
     import shutil
     import csv
     import pandas as pd
-    # Tkinter
-    root = Tk()
-    root.withdraw()
-
-    # Change to output directory
-    chances_to_give = 3
-    i = 0
-    while i < chances_to_give + 1:
-        i = i + 1
-        dir_phy = filedialog.askdirectory( title = "Select output directory")
-        yes_no = messagebox.askyesno( title = "Are You Sure?",
-                                     message = 'Output directory : '+str(dir_phy) )
-        if yes_no:
-            print( "Current working directory is ", dir_phy )
-            #os.chdir(dir_phy)
-            break
-        else:
-            if i == chances_to_give:
-                raise Exception( 'Error: output directory not selected' )
 
 
-    # these are the fields that the user needs to manually enter prior to uploading anything into the database.
-    # implant (primary key) # THIS IS THE PRIMARY KEY AND WILL AUTOMATICALLY POPULATE WITH A UNIQUE VALUE
-    animal_id           = input ('Animal ID (initials plus 5 digits, ex: abc12345)  ')
-    experiment_id       = input ('Experiment ID code (look up in lab file, or create)  ')
-    species             = input ('Species (rat or mouse, r/m)  ')
-    sex                 = input ('Sex (m or f)  ')
-    region              = input ('Implant region (common lab abbreviation, e.g., v1, v1m, scn, rsc, s1)  ')
-    strain              = input ('Animal Strain (ex. c57b6, le (long evans), sd (sprague dawley))  ')
-    genotype            = input ('Animal genotype (ex. wt, shank3+-, shank3 --)  ')
-    daqsys              = input ('Data Acq. System (ecube or intan)  ')
-    nchan               = int( input ('Number of channels in this implant, e.g., 64  ') )
-    chanrange           = input ('What is the channel range of this implant? (e.g. 65-128 as 65,128)  ')
-    n_sites             = int( input ('Total number of implant sites in this animal  ') )
-    implant_date        = input ('Implant date (MMDDYYYY)  ')
-    expt_start          = input ('Experiment start (MMDDYYYY)  ')
-    expt_end            = input ('Experiment end (MMDDYYYY)  ')
-    age_t0              = int( input ('Age at start of experiment (postnatal day e.g., 60)  ') )
-    surgeon             = input ('Surgeon (3 letter initial, e.g., abc)  ')
-    video_binary        = int( input ('Video? (yes video = 1, no video = 0)  ') )
-    light_binary        = int( input ('L/D timestamps? (1 or 0)  ') )
-    sound_binary        = int( input ('Microphone data? (1 or 0)  ') )
-    sw_binary           = int( input ('Sleep scoring? (1 or 0)  ') )
-    implant_coordinates = input ('Stereotaxic coordinates (lateral, then bregma), e.g., -1.0, 2.2  ')
-    electrode_type      = input ('Electrode type e.g., mit silicon, carbon, tetrode  ')
-    headstage           = input ('Headstage e.g., hs640, hs64, intan32, intan64  ')
+    from __future__ import absolute_import
+    from traits.api import HasTraits, Str, Int, Enum, List, Range, Directory, Button
+    from traitsui.api import View, Item, Group, Handler, EnumEditor
+    import numpy as np
 
-    # write in a check for this. if the user wants to, s/he should be able to go back and edit before committing the info to the database.
+    # # Tkinter
+    # root = Tk()
+    # root.withdraw()
+    #
+    # # Change to output directory
+    # chances_to_give = 3
+    # i = 0
+    # while i < chances_to_give + 1:
+    #     i = i + 1
+    #     dir_phy = filedialog.askdirectory( title = "Select output directory")
+    #     yes_no = messagebox.askyesno( title = "Are You Sure?",
+    #                                  message = 'Output directory : '+str(dir_phy) )
+    #     if yes_no:
+    #         print( "Current working directory is ", dir_phy )
+    #         #os.chdir(dir_phy)
+    #         break
+    #     else:
+    #         if i == chances_to_give:
+    #             raise Exception( 'Error: output directory not selected' )
+    # Dictionaries of defined elements.
+    specieslist = {
 
+        'Unknown'   : ['unknown'],
+        'mouse': ['mouse'],
+        'rat': ['rat']
+    }
 
-    # upload this into the database:
+    sexlist = {
+        'unknown' : ['unknown'],
+        'female': ['female'],
+        'male'  : ['male'],
+
+    }
+
+    regionlist = {
+
+        'Unknown'   : ['unknown'],
+        'Basal Forebrain' : ['basalforebrain'],
+        'HC'    : ['hc'],
+        'NAc'   : ['nac'],
+        'RSC'   : ['rsc'],
+        'SCN'   : ['scn'],
+        'S1'    : ['s1'],
+        'Subiculum' : ['subiculum'],
+        'V1m'   : ['v1m'],
+        'V1b'   : ['v1b'],
+        'V2'    : ['v2'],
+
+    }
+
+    # can conditionally display these based on species later on...
+    strainlist = {
+
+        'Unknown'   : ['unknown'],
+        'Long Evans' : ['le'],
+        'C57 Black 6' : ['c57b6'],
+
+    }
+
+    genotypelist = {
+
+        'Unknown'   : ['unknown'],
+        'WT'        : ['wt'],
+        'Dnmt3a'    : ['dnmt3a'],
+        'nf1'       : ['nf1'],
+        'P301S/E4'  : ['p301se4'],
+        'PV-cre'    : ['pvcre'],
+        'Shank3'    : ['shank3'],
+        'VIP-cre'   : ['vipcre'],
+
+    }
+
+    daqsyslist = {
+
+        'Unknown'   : ['unknown'],
+        'ecube' : ['ecube'],
+        'intan' : ['intan']
+
+    }
+
+    tflist = {
+
+        'yes' : [1],
+        'no'  : [0]
+
+    }
+
+    electrodelist = {
+
+        'Unknown'   : ['unknown'],
+        'tetrode' : ['tetrode'],
+        'stereotrode' : ['stereotrode'],
+        'single wire' : ['single'],
+        'carbon' : ['carbon'],
+        'MIT silicon' : ['mitsilicon'],
+        'UCLA silicon' : ['uclasilicon'],
+        'neuropixel' : ['neuropixel'],
+    }
+
+    headstagelist = {
+
+        'Unknown'   : ['unknown'],
+        'intan16' : ['intan16'],
+        'intan32' : ['intan32'],
+        'intan64' : ['intan64'],
+        'HS640'   : ['hs640'],
+
+    }
+
+    class implantupload(HasTraits):
+        """
+        """
+        masterpath      = Directory(os.getcwd())
+        #topdir          = Button('Dir.') #demo1.configure_traits(),#Button( demo1.configure_traits() )# oh what to do...
+        animalid        = Str ('ex. ABC12345')
+        experiment_id   = Str ('ex. 0010101')
+        species         = Enum(list(specieslist.keys())[0], list(specieslist.keys()))
+        sex             = Enum(list(sexlist.keys())[0],list(sexlist.keys()))
+        region          = Enum(list(regionlist.keys())[0],list(regionlist.keys()))
+        strain          = Enum(list(strainlist.keys())[0],list(strainlist.keys()))
+        genotype        = Enum(list(genotypelist.keys())[0],list(genotypelist.keys()))
+        daqsys          = Enum(list(daqsyslist.keys())[0],list(daqsyslist.keys()))
+        nchan           = Range(low = 1, high = 640)
+        chanrange       = Str ('ex. 65-128')
+        nsites          = Range(low = 1, high = 20)
+        implant_date    = Str ('MMDDYYYY')
+        exptstart       = Str ('MMDDYYYY')
+        exptend         = Str ('MMDDYYYY')
+        aget0           = Range(low = 0, high = 730)
+        surgeon         = Str ('initials, ex. ABC')
+        videobin        = Enum(list(tflist.keys())[0],list(tflist.keys()))
+        lightbin        = Enum(list(tflist.keys())[0],list(tflist.keys()))
+        soundbin        = Enum(list(tflist.keys())[0],list(tflist.keys()))
+        swbin           = Enum(list(tflist.keys())[0],list(tflist.keys()))
+        implantcoord    = Str('ex. -2.3,0.4')
+        electrode_type  = Enum(list(electrodelist.keys())[0],list(electrodelist.keys()))
+        hstype          = Enum(list(headstagelist.keys())[0],list(headstagelist.keys()))
+
+        view = View(
+            #Item(name = 'topdir'),
+            Item(name='masterpath',label='Directory'),
+            #Group(Item(name='topdir',show_label=False)),
+            Item(name = 'animalid'),
+            Item(name = 'experiment_id'),
+            Item(name = 'species'),
+            Item(name = 'sex'),
+            Item(name = 'region' ),
+            Item(name = 'strain'),
+            Item(name = 'genotype'),
+            Item(name = 'daqsys'),
+            Item(name = 'nchan'),
+            Item(name = 'chanrange'),
+            Item(name = 'nsites'),
+            Item(name = 'implant_date'),
+            Item(name = 'exptstart'),
+            Item(name = 'exptend'),
+            Item(name = 'aget0'),
+            Item(name = 'surgeon'),
+            Item(name = 'videobin'),
+            Item(name = 'lightbin'),
+            Item(name = 'soundbin'),
+            Item(name = 'swbin'),
+            Item(name = 'electrode_type'),
+            Item(name = 'hstype'),
+
+            title = 'Implant Information.',
+            buttons = ['OK'],
+            resizable = True,
+
+        )
+
+    # Create the demo:
+    demo = implantupload()
+
+    # Run the demo (if invoked from the command line):
+    if __name__ == '__main__':
+        demo.configure_traits()
+
+    # # these are the fields that the user needs to manually enter prior to uploading anything into the database.
+    # # implant (primary key) # THIS IS THE PRIMARY KEY AND WILL AUTOMATICALLY POPULATE WITH A UNIQUE VALUE
+    # animal_id           = input ('Animal ID (initials plus 5 digits, ex: abc12345)  ')
+    # experiment_id       = input ('Experiment ID code (look up in lab file, or create)  ')
+    # species             = input ('Species (rat or mouse, r/m)  ')
+    # sex                 = input ('Sex (m or f)  ')
+    # region              = input ('Implant region (common lab abbreviation, e.g., v1, v1m, scn, rsc, s1)  ')
+    # strain              = input ('Animal Strain (ex. c57b6, le (long evans), sd (sprague dawley))  ')
+    # genotype            = input ('Animal genotype (ex. wt, shank3+-, shank3 --)  ')
+    # daqsys              = input ('Data Acq. System (ecube or intan)  ')
+    # nchan               = int( input ('Number of channels in this implant, e.g., 64  ') )
+    # chanrange           = input ('What is the channel range of this implant? (e.g. 65-128 as 65,128)  ')
+    # n_sites             = int( input ('Total number of implant sites in this animal  ') )
+    # implant_date        = input ('Implant date (MMDDYYYY)  ')
+    # expt_start          = input ('Experiment start (MMDDYYYY)  ')
+    # expt_end            = input ('Experiment end (MMDDYYYY)  ')
+    # age_t0              = int( input ('Age at start of experiment (postnatal day e.g., 60)  ') )
+    # surgeon             = input ('Surgeon (3 letter initial, e.g., abc)  ')
+    # video_binary        = int( input ('Video? (yes video = 1, no video = 0)  ') )
+    # light_binary        = int( input ('L/D timestamps? (1 or 0)  ') )
+    # sound_binary        = int( input ('Microphone data? (1 or 0)  ') )
+    # sw_binary           = int( input ('Sleep scoring? (1 or 0)  ') )
+    # implant_coordinates = input ('Stereotaxic coordinates (lateral, then bregma), e.g., -1.0, 2.2  ')
+    # electrode_type      = input ('Electrode type e.g., mit silicon, carbon, tetrode  ')
+    # headstage           = input ('Headstage e.g., hs640, hs64, intan32, intan64  ')
+    #
+    # # write in a check for this. if the user wants to, s/he should be able to go back and edit before committing the info to the database.
+    #
+    #
+    # # upload this into the database:
     #  - - - - - - - - - - - - add data to a table - - - - - - - - - - - - -
     ## defining the Query
 
     # make sure that your target and value pairing match up with the fields that exist in the database.
     # the "target" in quotes is the field name in the database. the value (not in quotes) is the name
     # of the variable you're passing to the database.
+    
+        # NEED TO GET THE INFORMATION OUT OF THE GUI OUTPUT AND PUT INTO DICTIONARY
+
     target_val_pair = {
             "animal_id": animal_id,
             "experiment_id" : experiment_id,
@@ -158,6 +325,7 @@ def submit_implant():
             "electrode" : electrode_type,
             "headstage" : headstage
             }
+
 
     targets = tuple( [*target_val_pair] )
     values  = tuple( [*target_val_pair.values()] )
