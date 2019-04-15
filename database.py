@@ -7,15 +7,8 @@ db = pymysql.connect(user   = "root",
                             host    = "localhost",
                             database= "clusteringdb")
 
-#import mysql.connector as my
-# db = my.connect(
-#     host        = "localhost",
-#     user        = "root",
-#     passwd      = rootpwd,
-#     database    = "clusteringdb"
-# )
 cursor = db.cursor()
-
+# this is how you'll interact with the database
 # - - - - - - - - - - -  delete table - - - - - - - - - - - - - - - - -
 def deltable(tablestring, cursor = cursor):
     '''Delete tables from the clusteringdb.
@@ -232,12 +225,14 @@ def __implantgui():
             Item(name = 'lightbin'),
             Item(name = 'soundbin'),
             Item(name = 'swbin'),
+            Item(name = 'implantcoord'),
             Item(name = 'electrode_type'),
             Item(name = 'hstype'),
 
             title = 'Implant Information.',
             buttons = ['OK'],
             resizable = True,
+            scrollable = True,
 
         )
 
@@ -263,29 +258,29 @@ def submit_implant():
     g = __implantgui()
 
     target_val_pair = {
-            "animal_id": animal_id,
-            "experiment_id" : experiment_id,
-            "species" : species,
-            "sex" : sex,
-            "region" : region,
-            "strain" : strain,
-            "genotype" : genotype,
-            "daqsys" : daqsys,
-            "nchan" : nchan,
-            "chan_range" : chanrange,
-            "n_implant_sites" : n_sites,
-            "implant_date" : implant_date,
-            "expt_start" : expt_start,
-            "expt_end" : expt_end,
-            "age_t0" : age_t0,
-            "surgeon" : surgeon,
-            "video_binary" : video_binary,
-            "light_binary" : light_binary,
-            "sound_binary" : sound_binary,
-            "sleep_state_binary" : sw_binary,
-            "implant_coordinates" : implant_coordinates,
-            "electrode" : electrode_type,
-            "headstage" : headstage
+            "animal_id": g.animalid,
+            "experiment_id" : g.experiment_id,
+            "species" : g.species,
+            "sex" : g.sex,
+            "region" : g.region,
+            "strain" : g.strain,
+            "genotype" : g.genotype,
+            "daqsys" : g.daqsys,
+            "nchan" : g.nchan,
+            "chan_range" : g.chanrange,
+            "n_implant_sites" : g.nsites,
+            "implant_date" : g.implant_date,
+            "expt_start" : g.exptstart,
+            "expt_end" : g.exptend,
+            "age_t0" : g.aget0,
+            "surgeon" : g.surgeon,
+            "video_binary" : g.videobin,
+            "light_binary" : g.lightbin,
+            "sound_binary" : g.soundbin,
+            "sleep_state_binary" : g.swbin,
+            "implant_coordinates" : g.implantcoord,
+            "electrode" : g.electrode_type,
+            "headstage" :g.headstage
             }
 
 
