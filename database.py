@@ -65,7 +65,6 @@ def createclusterstable():
     cursor.execute("ALTER TABLE clusters ADD FOREIGN KEY(implant_id) REFERENCES implant_db(implant_id) ")
     print('Created table "clusters" in the {} database'.format(db.db))
 
-
 def __implantgui():
     ''' This function asks a user to input the implant/region info about each electrode used in chronic electrophys recordings. The function will write a csv file into the folder that contains the relevant dataset. The csv file will be uploaded into the lab's mysql database into the implant_db table in the clusters database.'''
     import os
@@ -180,22 +179,6 @@ def __implantgui():
 
     }
 
-    class PersonHandler(Handler):
-    """ Handler class to perform restructuring action when conditions are met.
-    The restructuring consists of replacing a ChildSpec instance by an
-    AdultSpec instance, or vice-versa. We would not need a handler to listen
-    for a change in age, but we do need a Handler so that Traits UI will
-    respond immediately to changes in the viewed Person, which require
-    immediate restructuring of the UI.
-    """
-
-        def object_age_changed(self, info):
-            if ((info.object.age >= 18) and
-                    (not isinstance(info.object.misc, AdultSpec))):
-                info.object.misc = AdultSpec()
-            elif ((info.object.age < 18) and
-                  (not isinstance(info.object.misc, ChildSpec))):
-                info.object.misc = ChildSpec()
 
     class implantupload(HasTraits):
         """
@@ -255,7 +238,6 @@ def __implantgui():
             title = 'Implant Information.',
             buttons = ['OK'],
             resizable = True,
-            handler = PersonHandler()
 
         )
 
