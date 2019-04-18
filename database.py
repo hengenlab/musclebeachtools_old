@@ -1,51 +1,65 @@
-import pymysql
-# connect to the clustering database
-rootpwd = "%6m5kq2FymMXy5t3"
 
-db = pymysql.connect(user   = "root",
-                            passwd  = rootpwd,
-                            host    = "localhost",
-                            database= "clusteringdb")
-
-cursor = db.cursor()
-# this is how you'll interact with the database
-# - - - - - - - - - - -  delete table - - - - - - - - - - - - - - - - -
-def deltable(tablestring, cursor = cursor):
-    '''Delete tables from the clusteringdb.
+def connectclusterdb (user, pwd):
+    ''' CONNECTCLUSTERDB. Connect to the clusteringdb database.
     Inputs:
-    TABLESTRING: can be either 'implant_db' or 'clusters'
+        USER: username
+        PWD: password
 
     Outputs:
-    None. Prints tables before and after execution of function.'''
+        DB.CURSOR:
+        DB:
+     '''
+    import pymysql
+    # connect to the clustering database
+    pwd = "%6m5kq2FymMXy5t3"
+    usr = "root"
+    db = pymysql.connect(user   = usr,
+                                passwd  = pwd,
+                                host    = "localhost",
+                                database= "clusteringdb")
+
+    return db.cursor(), db
+# this is how you'll interact with the database
+# - - - - - - - - - - -  delete table - - - - - - - - - - - - - - - - -
+def deltable(tablestring, cursor, db):
+    '''DELTABLE. Delete tables from the clusteringdb.
+    Inputs:
+        TABLESTRING: can be either 'implant_db' or 'clusters'
+        CURSOR: database interacting cursor. Run ' [cursor, db] = connectclusterdb(pwd) ' to generate.
+
+    Outputs:
+        None. Prints tables before and after execution of function.'''
 
     cursor.execute("SHOW TABLES")
     tables_0 = cursor.fetchall()
 
     if tablestring is 'implant_db':
 
-        cursor = db.cursor()
+        #cursor = db.cursor()
 
         [ cursor.execute(killcode) for killcode in ("DROP TABLE clusters", "DROP TABLE implant_db") ]
 
     elif tablestring is 'clusters':
+
         cursor.execute("DROP TABLE clusters")
 
     cursor.execute("SHOW TABLES")
     tables_1 = cursor.fetchall()
 
     print('Tables at start: {}\nTables end at: {}'.format(tables_0, tables_1))
+    print('Changes apply to the {} database'.format(db.db))
 
-def createimplanttable(db = db):
+def createimplanttable(cursor,db):
     '''Create the implant_db table. This should NOT be used except during development.
     May be called after the deltable function. '''
     # ---------------------------- create table for implant/region info ------------
-    cursor = db.cursor()
+    #cursor = db.cursor()
     cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), sex VARCHAR(1), region VARCHAR(255), strain VARCHAR(255), genotype VARCHAR(255), daqsys VARCHAR(255), nchan TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 TINYINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), electrode VARCHAR(255), headstage VARCHAR(255) ) "     )
 
     cursor.execute("ALTER TABLE implant_db ADD COLUMN implant_id INTEGER AUTO_INCREMENT PRIMARY KEY FIRST")
     print('Created table "implant_db" in the {} database'.format(db.db))
 
-def createclusterstable():
+def createclusterstable(cursor,db):
     '''Create the clusters table. This should NOT be used except during development.
     May be called after the deltable function. '''
 
@@ -93,7 +107,9 @@ def __implantgui():
 
         'Unknown'           : ['unknown'],
         'Basal Forebrain'   : ['basalforebrain'],
+        'BLA'               : ['bla'],
         'CA1'               : ['ca1'],
+        'CeA'               : ['cea'],
         'DG'                : ['dg'],
         'Endo ctx'          : ['endoctx'],
         'Ento ctx'          : ['entoctx'],
@@ -101,11 +117,13 @@ def __implantgui():
         'LGN'               : ['lgn'],
         'M1'                : ['m1'],
         'm2'                : ['m2'],
+        'OFC'               : ['OFC'],
         'perirh ctx'        : ['perirh ctx'],
         'NAc'               : ['nac'],
         'RSC'               : ['rsc'],
         'SCN'               : ['scn'],
         'S1'                : ['s1'],
+        'S2'                : ['s2'],
         'Subiculum'         : ['subiculum'],
         'V1m'               : ['v1m'],
         'V1b'               : ['v1b'],
@@ -118,6 +136,7 @@ def __implantgui():
 
         'Unknown'       : ['unknown'],
         'Long Evans'    : ['le'],
+        'Sprague Dawley': ['sd'],
         'C57 Black 6'   : ['c57b6'],
 
     }
