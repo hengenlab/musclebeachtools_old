@@ -79,7 +79,7 @@ def createclusterstable(cursor,db):
     '''Create the clusters table. This should NOT be used except during development.
     May be called after the deltable function. '''
 
-    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t TINYINT, half_width TINYINT, slope_falling TINYINT, mean_amplitude TINYINT, fr TINYINT, cluster_number TINYINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, block_label VARCHAR(255), folder_location VARCHAR(255) )" )
+    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t SMALLINT, half_width SMALLINT, slope_falling MEDIUMINT, mean_amplitude SMALLINT, fr SMALLINT, cluster_number TINYINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, block_label VARCHAR(255), folder_location VARCHAR(255) )" )
 
     # add a column for cluster barcodes and make it the primary key and make it first.
     cursor.execute("ALTER TABLE clusters ADD COLUMN barcode DOUBLE NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST")
@@ -392,6 +392,7 @@ def clustercrawl(topdir,ucode,channel_group):
 
     blocks  = [blocks[i][0 : blocks[i].find('unique_clusters.npy')] for i in np.arange(0,np.shape(blocks)[0])]
 
+
     for block in blocks:
         print('Extracting metadata on clusters from {}'.format(block))
         # get the info that needs to go into the clustersdb table
@@ -420,7 +421,6 @@ def cluststats(blocklabel, uniqid, clustdir):
         DF: A pandas dataframe containing all of the cluster metadata. This
             *should* typically be passed to SUBMITCLUSTERS.
         '''
-
     # extract the clustering algorithm
     f = open(blocklabel + 'algorithm.txt','r')
     clustal = f.readlines()[0]
@@ -435,8 +435,8 @@ def cluststats(blocklabel, uniqid, clustdir):
     # get the sample rate.
     samplerate = np.squeeze( np.load( blocklabel + 'sampling_rate.npy') )
     # read out the number of sample points in the block from the file name
-    ltext   = blocks[0].find('length_') + 7
-    dur     = np.int( blocks[0][ ltext : blocks[0].find( '_', ltext ) ] )
+    ltext   = blocklabel.find('length_') + 7
+    dur     = np.int( blocklabel[ ltext : blocklabel.find( '_', ltext ) ] )
     # convert sample points to time in seconds. might be better to store
     # sample points and sample rate so nothing gets lost in rounding.
     dur     /= samplerate
@@ -474,11 +474,11 @@ def cluststats(blocklabel, uniqid, clustdir):
 
     # Write data into a pandas dataframe.
     df = pd.DataFrame({ 'quality' : np.squeeze(qs), 'neg_pos_t' :
-     neg_pos_t, 'halfwidth' : halfs,  'fallingslope' : falling , 'mean_amplitude': mean_amps,
-     'FR' : clust_frs, 'clusterno' : unique, 'duration' : np.tile(dur, unique.size),
-     'timezero' : np.tile(t0, unique.size), 'algorithm' : np.tile(clustal, unique.size),
+     neg_pos_t, 'half_width' : halfs,  'slope_falling' : falling , 'mean_amplitude': mean_amps,
+     'fr' : clust_frs, 'cluster_number' : unique, 'duration' : np.tile(dur, unique.size),
+     'clustering_t0' : np.tile(t0, unique.size), 'algorithm' : np.tile(clustal, unique.size),
      'implant_id' : np.tile(uniqid,unique.size), 'block_label' : np.tile(blockname, unique.size),
-     'folder' : np.tile(clustdir, unique.size) })
+     'folder_location' : np.tile(clustdir, unique.size) })
 
     return df
 
@@ -491,26 +491,27 @@ def submitclusters(clstrdf):
     Outputs:
         None.
         '''
-    targets = tuple(list(clstrdf))
-    values  = clstrdf.values
+    clstrdic = clstrdf.to_dict(orient='records') # convert rows to dictionaries
+    targets = tuple( [ *clstrdic[0] ] )
+    cols = ', '.join(map(__escape_name, targets))
+    placeholders = ', '.join(['%({})s'.format(name) for name in targets])
+      # assumes the keys are *valid column names*.
 
     for i in np.arange(0,clstrdf.shape[0]):
-        # extract the metadata values from the i-th cluster.
-        nval  = tuple( values[i,:] )
-        # format the naming correctly for mysql.
-        cols = ', '.join(map(__escape_name, targets))  # assumes the keys are *valid column names*.
-        placeholders = ', '.join(['%({})s'.format(name) for name in targets])
 
-        query = 'INSERT INTO clusters ({}) VALUES ({})'.format(cols, nval)
-        cursor.execute(query) , target_val_pair)
-        uniqueid = cursor.execute('SELECT last_insert_id()')
+        tempd = clstrdic[i]
 
-        print('Submitted cluster {} information to the clusters table in the clusteringdb database.'.format(i))
+        query = 'INSERT INTO clusters ({}) VALUES ({})'.format(cols, placeholders)
+        cursor.execute(query, tempd)
+        uniqueid = cursor.lastrowid #execute('SELECT last_insert_id()')
+
+        print('Submitted cluster {} information to the clusters table in the clusteringdb database as clust no. {}.'.format(i,uniqueid))
+
     # write pandas dataframe to a .csv file in the loc folder.
-     # same as mpath above
-    fn  = clstrdf['folder'][0] + '/' + 'metadata_' + clstrdf['block_label'][0] + '_.csv'
+    # same as mpath above
+    fn  = clstrdf['folder_location'][0] + '/' + 'metadata_' + clstrdf['block_label'][0] + '_.csv'
     clstrdf.to_csv(fn)
-    print('Wrote cluster {} information to .csv file {}'.format(i,fn))
+    print('Wrote info from {} clusters to .csv file {}'.format(np.shape(clstrdf)[0],fn))
 
 
 def upload_implant(cursor,db):
