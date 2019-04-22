@@ -1,3 +1,13 @@
+import os
+import os.path as op
+import numpy as np
+import pymysql
+import shutil
+import csv
+import pandas as pd
+import glob
+from traits.api import HasTraits, Str, Enum, Range, Directory
+from traitsui.api import View, Item, Handler
 
 def connectclusterdb (user, pwd):
     ''' CONNECTCLUSTERDB. Connect to the clusteringdb database.
@@ -6,10 +16,13 @@ def connectclusterdb (user, pwd):
         PWD: password
 
     Outputs:
-        DB.CURSOR:
-        DB:
+        DB.CURSOR: "A database cursor is an identifier associated with a group
+            of rows. It is, in a sense, a pointer to the current row in a buffer.
+            You must use a cursor in the following cases: Statements that return
+            more than one row of data from the database server: A SELECT statement
+            requires a select cursor."
+        DB: Database connection.
      '''
-    import pymysql
     # connect to the clustering database
     pwd = "%6m5kq2FymMXy5t3"
     usr = "root"
@@ -19,10 +32,15 @@ def connectclusterdb (user, pwd):
                                 database= "clusteringdb")
 
     return db.cursor(), db
+
 # this is how you'll interact with the database
 # - - - - - - - - - - -  delete table - - - - - - - - - - - - - - - - -
 def deltable(tablestring, cursor, db):
-    '''DELTABLE. Delete tables from the clusteringdb.
+    '''DELTABLE. Delete tables from the clusteringdb. If you select to delete
+        the 'implant_db' table, you will automatically trigger deletion of the
+        clusters database. This is not the case if you delete the clusters
+        database (implant_db will remain intact). This is because the clusters
+        table has a foreign key that intersects with the implant_db table.
     Inputs:
         TABLESTRING: can be either 'implant_db' or 'clusters'
         CURSOR: database interacting cursor. Run ' [cursor, db] = connectclusterdb(pwd) ' to generate.
@@ -34,8 +52,6 @@ def deltable(tablestring, cursor, db):
     tables_0 = cursor.fetchall()
 
     if tablestring is 'implant_db':
-
-        #cursor = db.cursor()
 
         [ cursor.execute(killcode) for killcode in ("DROP TABLE clusters", "DROP TABLE implant_db") ]
 
@@ -54,7 +70,7 @@ def createimplanttable(cursor,db):
     May be called after the deltable function. '''
     # ---------------------------- create table for implant/region info ------------
     #cursor = db.cursor()
-    cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), sex VARCHAR(1), region VARCHAR(255), strain VARCHAR(255), genotype VARCHAR(255), daqsys VARCHAR(255), nchan TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 TINYINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), electrode VARCHAR(255), headstage VARCHAR(255) ) "     )
+    cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), sex VARCHAR(255), region VARCHAR(255), strain VARCHAR(255), genotype VARCHAR(255), daqsys VARCHAR(255), nchan TINYINT, changroup TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 TINYINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), electrode VARCHAR(255), headstage VARCHAR(255) ) "     )
 
     cursor.execute("ALTER TABLE implant_db ADD COLUMN implant_id INTEGER AUTO_INCREMENT PRIMARY KEY FIRST")
     print('Created table "implant_db" in the {} database'.format(db.db))
@@ -63,7 +79,7 @@ def createclusterstable(cursor,db):
     '''Create the clusters table. This should NOT be used except during development.
     May be called after the deltable function. '''
 
-    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t TINYINT, half_width TINYINT, slope_falling TINYINT, mean_amplitude TINYINT, fr TINYINT, cluster_number TINYINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), track_key VARCHAR(255), implant_id INTEGER, block_label VARCHAR(255), folder_location VARCHAR(255) )" )
+    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t TINYINT, half_width TINYINT, slope_falling TINYINT, mean_amplitude TINYINT, fr TINYINT, cluster_number TINYINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, block_label VARCHAR(255), folder_location VARCHAR(255) )" )
 
     # add a column for cluster barcodes and make it the primary key and make it first.
     cursor.execute("ALTER TABLE clusters ADD COLUMN barcode DOUBLE NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST")
@@ -74,10 +90,6 @@ def createclusterstable(cursor,db):
 
 def __implantgui():
     ''' This function asks a user to input the implant/region info about each electrode used in chronic electrophys recordings. The function will write a csv file into the folder that contains the relevant dataset. The csv file will be uploaded into the lab's mysql database into the implant_db table in the clusters database.'''
-    import os
-    from traits.api import HasTraits, Str, Enum, Range, Directory
-    from traitsui.api import View, Item, Handler  #Group,  #EnumEditor
-    import numpy as np
 
     # set up dictionaries for GUI field enumeration
     specieslist = {
@@ -131,7 +143,6 @@ def __implantgui():
 
     }
 
-    # can conditionally display these based on species later on...
     strainlist = {
 
         'Unknown'       : ['unknown'],
@@ -187,13 +198,13 @@ def __implantgui():
         'intan16' : ['intan16'],
         'intan32' : ['intan32'],
         'intan64' : ['intan64'],
+        'HS64'    : ['hs64'],
         'HS640'   : ['hs640'],
 
     }
 
-
     class implantupload(HasTraits):
-        """
+        """ IMPLANTUPLOAD: Class for traitsui GUI creation and subsequent datastorage.
         """
         masterpath      = Directory(os.getcwd())
         animalid        = Str ('ex. ABC12345')
@@ -205,6 +216,7 @@ def __implantgui():
         genotype        = Enum(list(genotypelist.keys())[0],list(genotypelist.keys()))
         daqsys          = Enum(list(daqsyslist.keys())[0],list(daqsyslist.keys()))
         nchan           = Range(low = 1, high = 640)
+        changroup       = Range (low = 1, high = 10)
         chanrange       = Str ('ex. 65-128')
         nsites          = Range(low = 1, high = 20)
         implant_date    = Str ('MMDDYYYY')
@@ -221,9 +233,7 @@ def __implantgui():
         hstype          = Enum(list(headstagelist.keys())[0],list(headstagelist.keys()))
 
         view = View(
-            #Item(name = 'topdir'),
             Item(name='masterpath',label='Directory'),
-            #Group(Item(name='topdir',show_label=False)),
             Item(name = 'animalid'),
             Item(name = 'experiment_id'),
             Item(name = 'species'),
@@ -233,6 +243,7 @@ def __implantgui():
             Item(name = 'genotype'),
             Item(name = 'daqsys'),
             Item(name = 'nchan'),
+            Item(name = 'changroup'),
             Item(name = 'chanrange'),
             Item(name = 'nsites'),
             Item(name = 'implant_date'),
@@ -255,27 +266,49 @@ def __implantgui():
 
         )
 
-    # Create the demo:
+    # Create the GUI:
     igui = implantupload()
 
-    # Run the demo (if invoked from the command line):
+    # Run the GUI (if invoked from the command line):
     if __name__ == '__main__':
         igui.configure_traits()
 
     return igui
-            # NEED TO GET THE INFORMATION OUT OF THE GUI OUTPUT AND PUT INTO DICTIONARY
 
-def submit_implant():
-    import os
-    import os.path as op
-    import shutil
-    import csv
-    import pandas as pd
-    #from __future__ import absolute_import
-    import numpy as np
 
-    g = __implantgui()
+def __escape_name(s):
+    """ Code copied from internet source: formats string data from
+    target_val_pair for error-free uploading into mySQL database.
 
+    'Escape name to avoid SQL injection and keyword clashes.
+    Doubles embedded backticks, surrounds the whole in backticks.
+    Note: not security hardened, caveat emptor.''
+
+    """
+    return '`{}`'.format(s.replace('`', '``'))
+
+def submit_implant(g,cursor,db):
+    '''SUBMIT_IMPLANT Takes the data structure output from the GUI __implantgui
+        and writes the data contents into the clusteringdb in the implant_db
+        table. This will automatically call the clustercrawl function to crawl
+        through the directory selected by the user (via the GUI), extract the
+        cluster information, and write those data into the clusters table.
+
+        Inputs:
+            G: this is the output structure from __implantgui.
+            CURSOR: Database cursor.
+            DB: Database connection.
+
+        Outputs:
+            uniqueid,
+            g.changroup,
+            g.masterpath
+            '''
+    # convert the binary fields to 0 and 1 integers for proper formatting
+    d = np.array([g.videobin, g.lightbin, g.soundbin,g.swbin])
+    d = [int(i) for i in d == 'yes']
+
+    # create a dictionary of each of the targets (names) and the correspoding data
     target_val_pair = {
             "animal_id": g.animalid,
             "experiment_id" : g.experiment_id,
@@ -286,6 +319,7 @@ def submit_implant():
             "genotype" : g.genotype,
             "daqsys" : g.daqsys,
             "nchan" : g.nchan,
+            "changroup" : g.changroup,
             "chan_range" : g.chanrange,
             "n_implant_sites" : g.nsites,
             "implant_date" : g.implant_date,
@@ -293,52 +327,43 @@ def submit_implant():
             "expt_end" : g.exptend,
             "age_t0" : g.aget0,
             "surgeon" : g.surgeon,
-            "video_binary" : g.videobin,
-            "light_binary" : g.lightbin,
-            "sound_binary" : g.soundbin,
-            "sleep_state_binary" : g.swbin,
+            "video_binary" : d[0],
+            "light_binary" : d[1],
+            "sound_binary" : d[2],
+            "sleep_state_binary" : d[3],
             "implant_coordinates" : g.implantcoord,
             "electrode" : g.electrode_type,
-            "headstage" :g.headstage
+            "headstage" :g.hstype
             }
 
-
+    # convert dictionary target and value information into tuples
     targets = tuple( [*target_val_pair] )
-    values  = tuple( [*target_val_pair.values()] )
-
-    def escape_name(s):
-        """Escape name to avoid SQL injection and keyword clashes.
-
-        Doubles embedded backticks, surrounds the whole in backticks.
-
-        Note: not security hardened, caveat emptor.
-
-        """
-        return '`{}`'.format(s.replace('`', '``'))
-
-    names = list(target_val_pair)
-    cols = ', '.join(map(escape_name, names))  # assumes the keys are *valid column names*.
-    placeholders = ', '.join(['%({})s'.format(name) for name in names])
-
+    #values  = tuple( [*target_val_pair.values()] )
+    # automatically rewrite the target names into the proper format for mysql
+    cols = ', '.join(map(__escape_name, targets))  # assumes the keys are *valid column names*.
+    placeholders = ', '.join(['%({})s'.format(name) for name in targets])
+    # submit to the implants_db table.
     query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
     cursor.execute(query, target_val_pair)
     uniqueid = cursor.execute('SELECT last_insert_id()')
-
-    # add the fodler location and the implant barcode ID (unique, generated on commit)
-    target_val_pair.update({'location':dir_phy, 'implant_id':uniqueid})
     print('Added implant information to the implant_db table in the clusteringdb database.')
+
+    # add the folder location and the implant barcode ID (unique, generated on
+    # commit) to the dictionary
+    target_val_pair.update({'location':g.masterpath, 'implant_id':uniqueid})
+
     # write to a pandas dataframe, use this to write to a .csv file easily.
     df = pd.DataFrame.from_dict(data=target_val_pair, orient='index')
-    fn = dir_phy + '/' + animal_id + '_' + region + '_' + str(n_sites) + '_sites.csv'
+    fn = g.masterpath + '/' + g.animalid + '_' + g.region + '_' + str(g.nsites) + '_sites.csv'
     (pd.DataFrame.from_dict(data=target_val_pair, orient='index').to_csv(fn, header=False))
     print('Wrote implant information to .csv file  {}'.format(fn))
 
-    return uniqueid, chanrange, dir_phy
-    # NOW YOU'LL NEED TO CALL THE CLUSTERCRAWL FUNCTION. WRITE SCRIPT TO first
-    # call the submit implant, then go to the cluster crawl. user should have
-    # control over this, but it's unclear when you would run one and not the other
+    return uniqueid, g.changroup, g.masterpath
+    # This information should be sent to the clustercrawl function. clustercrawl
+    # will automatically calculate/detect cluster metadata by implant (channel
+    # group) and block (time) and write to another table in the database.
 
-def clustercrawl(topdir,ucode,chans):
+def clustercrawl(topdir,ucode,channel_group):
     '''Crawl through all of the subfolders in the top directory - these should contain
         all of the clusters by time bin (24h?). Info will be scraped from the datafiles
         and added to the clusters database.
@@ -355,37 +380,57 @@ def clustercrawl(topdir,ucode,chans):
 
         OUTPUTS:
         (none)
-
-        under development.
-        kbh 4/11/19
         '''
-    import numpy as np
-    import glob
-    import os
-    #cwd = os.getcwd() # save the current folder so that you can return the
-    #user to this as soon as the code finishes.
+    # extract the base filename of the individual time-blocks (each is associated)
+    # with many files. There will be files per block and per channel group (same
+    # as implant number). i.e., you could have 30 blocks, each containing n channel
+    # groups. You'll need to loop across time-blocks and only consider the cluster
+    # from the channel group contained within the implant submission that called
+    # this function.
+    blocks      = glob.glob(topdir +'/'+ '*_chg_' +
+        str(channel_group) +'_unique_clusters.npy')
 
-    # figure out how many blocks (days?) of recording you're dealing with:
-    blocks      = glob.glob(topdir +'/'+ '*_unique_clusters.npy')
-    # extract the block's file name key
     blocks  = [blocks[i][0 : blocks[i].find('unique_clusters.npy')] for i in np.arange(0,np.shape(blocks)[0])]
-    # extract the label component that is unique to this block and common to
-    # all components related to this block
-    #blocklabel  = blocks[0][0:blocks[0].find('unique_clusters.npy')])
-
-    # set the directory
-    folder_location = topdir
 
     for block in blocks:
-        print(block)
-        #DO THE thing
+        print('Extracting metadata on clusters from {}'.format(block))
+        # get the info that needs to go into the clustersdb table
+        blockdf = cluststats(block, ucode, topdir)
 
-def cluststats(blocklabel):
+        # submit cluster metadata from block to the database.
+        submitclusters(blockdf)
+
+
+def cluststats(blocklabel, uniqid, clustdir):
+    '''CLUSTSTATS Extract spiking statistics and measurements from clusters. Info
+    will be returned as a pandas dataframe.
+
+    Inputs:
+        BLOCKLABEL: The string that is used to identify all of the files corres-
+            ponding to the time-block and channel group (implant number) being
+            analyzed.
+        UNIQID: The unique implant barcode generated by uploading implant info
+            to the implant_db table. That upload *should* be the event that
+            triggers automated extraction and uploading of cluster data. UNIQID
+            is used to link clusters in the clusters table to the correct implant
+            info in the implant_db table.
+        CLUSTDIR: The directory in which the cluster datafiles are stored.
+
+    Outputs:
+        DF: A pandas dataframe containing all of the cluster metadata. This
+            *should* typically be passed to SUBMITCLUSTERS.
+        '''
+
     # extract the clustering algorithm
-    clustal = np.load(blocklabel + 'algorithm.npy')
+    f = open(blocklabel + 'algorithm.txt','r')
+    clustal = f.readlines()[0]
+    f.close()
     # figure out t0 for the block in YYMMDD_HHMMSS
     unders = [i for i, letter in enumerate(blocklabel) if letter == '_']
     t0 = blocklabel[unders[1]+1:unders[3]]
+    # get the block name independent of the directory information
+    blockname = blocklabel[ blocklabel.rfind('/') + 1 : -1 ]
+
     # - - - - - - - - - caluculate block duration  - - - - - - - -
     # get the sample rate.
     samplerate = np.squeeze( np.load( blocklabel + 'sampling_rate.npy') )
@@ -412,23 +457,78 @@ def cluststats(blocklabel):
     # - - - get waveform information - - - - - - - - -
     wfs = np.load(blocklabel + 'template_waveform.npy')
 
-    negpos  = np.zeros(unique.size)
-    halfs   = np.zeros(unique.size)
-    falling = np.zeros(unique.size)
-    count   = 0
+    neg_pos_t   = np.zeros(unique.size)
+    halfs       = np.zeros(unique.size)
+    falling     = np.zeros(unique.size)
+    count       = 0
     for i in unique:
         # calculate peak min to max time
-        negpos[count]   =  (wfs[i][wfs[i].argmin():-1].argmax()) * (1/samplerate)
+        neg_pos_t[count]=  (wfs[i][wfs[i].argmin():-1].argmax()) * (1/samplerate)
         # calculate the spike halfwidth
         halfs[count]    = np.sum( wfs[i] < 0.5 * wfs[i].min() ) * (1/samplerate)
         # calculate falling phase slope (appears rising on the extracellular WF)
         # this is calculated as microvolts per millisecond
         falling[count]  = (wfs[i][28] - wfs[i][24])/ (4*(1/samplerate)*1000)
 
-
         count +=1
 
-    #WRITE THE THINGS YOU NEED TO A PANDAS DATAFRAME AND RETURN THAT
+    # Write data into a pandas dataframe.
+    df = pd.DataFrame({ 'quality' : np.squeeze(qs), 'neg_pos_t' :
+     neg_pos_t, 'halfwidth' : halfs,  'fallingslope' : falling , 'mean_amplitude': mean_amps,
+     'FR' : clust_frs, 'clusterno' : unique, 'duration' : np.tile(dur, unique.size),
+     'timezero' : np.tile(t0, unique.size), 'algorithm' : np.tile(clustal, unique.size),
+     'implant_id' : np.tile(uniqid,unique.size), 'block_label' : np.tile(blockname, unique.size),
+     'folder' : np.tile(clustdir, unique.size) })
 
-    #convert chans from comma separated string to integers
-    chans = [int(i) for i in chans.split(',')]
+    return df
+
+def submitclusters(clstrdf):
+    '''SUBMITCLUSTERS Function called by other scripts that submits cluster data
+    to the clusters table.
+
+    Inputs:
+        CLSTRDF: Pandas dataframe created by cluststats.
+    Outputs:
+        None.
+        '''
+    targets = tuple(list(clstrdf))
+    values  = clstrdf.values
+
+    for i in np.arange(0,clstrdf.shape[0]):
+        # extract the metadata values from the i-th cluster.
+        nval  = tuple( values[i,:] )
+        # format the naming correctly for mysql.
+        cols = ', '.join(map(__escape_name, targets))  # assumes the keys are *valid column names*.
+        placeholders = ', '.join(['%({})s'.format(name) for name in targets])
+
+        query = 'INSERT INTO clusters ({}) VALUES ({})'.format(cols, nval)
+        cursor.execute(query) , target_val_pair)
+        uniqueid = cursor.execute('SELECT last_insert_id()')
+
+        print('Submitted cluster {} information to the clusters table in the clusteringdb database.'.format(i))
+    # write pandas dataframe to a .csv file in the loc folder.
+     # same as mpath above
+    fn  = clstrdf['folder'][0] + '/' + 'metadata_' + clstrdf['block_label'][0] + '_.csv'
+    clstrdf.to_csv(fn)
+    print('Wrote cluster {} information to .csv file {}'.format(i,fn))
+
+
+def upload_implant(cursor,db):
+    '''SUBMIT_IMPLANT Top level function that calls subscripts required for
+    a user to submit and upload information about an implant, and subsequently
+    trigger the automated detection and uploading of information about the
+    clusters (neurons) recorded on that implant.
+
+    Inputs:
+        CURSOR: Database cursor.
+        DB: Database connection.
+        '''
+    #connect to the clusteringdb
+    cursor, db = connectclusterdb (user, pwd)
+    # call the implant info GUI and collect relevant information.
+    g = __implantgui()
+    # format and pass information from GUI to the implant_db table
+    uniqueid, chgroup, mpath = submit_implant(g,cursor,db)
+    # crawl through the clustering output and create entries in the clusters table
+    # that correspond to the uniqueid of the implant submitted by the user.
+    clustercrawl(mpath,uniqueid,chgroup)
