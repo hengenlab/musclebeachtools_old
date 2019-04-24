@@ -9,7 +9,7 @@ import glob
 from traits.api import HasTraits, Str, Enum, Range, Directory
 from traitsui.api import View, Item, Handler
 
-def connectclusterdb (user, pwd):
+def connectclusterdb (usr, pwd):
     ''' CONNECTCLUSTERDB. Connect to the clusteringdb database.
     Inputs:
         USER: username
@@ -24,8 +24,8 @@ def connectclusterdb (user, pwd):
         DB: Database connection.
      '''
     # connect to the clustering database
-    pwd = "%6m5kq2FymMXy5t3"
-    usr = "root"
+    # pwd = "%6m5kq2FymMXy5t3"
+    # usr = "root"
     db = pymysql.connect(user   = usr,
                                 passwd  = pwd,
                                 host    = "localhost",
@@ -70,7 +70,7 @@ def createimplanttable(cursor,db):
     May be called after the deltable function. '''
     # ---------------------------- create table for implant/region info ------------
     #cursor = db.cursor()
-    cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), sex VARCHAR(255), region VARCHAR(255), strain VARCHAR(255), genotype VARCHAR(255), daqsys VARCHAR(255), nchan TINYINT, changroup TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 TINYINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), electrode VARCHAR(255), headstage VARCHAR(255) ) "     )
+    cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), sex VARCHAR(255), region VARCHAR(255), strain VARCHAR(255), genotype VARCHAR(255), daqsys VARCHAR(255), nchan TINYINT, changroup TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 SMALLINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), electrode VARCHAR(255), headstage VARCHAR(255) ) "     )
 
     cursor.execute("ALTER TABLE implant_db ADD COLUMN implant_id INTEGER AUTO_INCREMENT PRIMARY KEY FIRST")
     print('Created table "implant_db" in the {} database'.format(db.db))
@@ -79,7 +79,7 @@ def createclusterstable(cursor,db):
     '''Create the clusters table. This should NOT be used except during development.
     May be called after the deltable function. '''
 
-    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t SMALLINT, half_width SMALLINT, slope_falling MEDIUMINT, mean_amplitude SMALLINT, fr SMALLINT, cluster_number TINYINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, block_label VARCHAR(255), folder_location VARCHAR(255) )" )
+    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t SMALLINT, half_width SMALLINT, slope_falling MEDIUMINT, mean_amplitude SMALLINT, fr SMALLINT, cluster_number TINYINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, tracklinks VARCHAR(255), block_label VARCHAR(255), folder_location VARCHAR(255) )" )
 
     # add a column for cluster barcodes and make it the primary key and make it first.
     cursor.execute("ALTER TABLE clusters ADD COLUMN barcode DOUBLE NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST")
@@ -87,6 +87,17 @@ def createclusterstable(cursor,db):
     # make foreign keys in the clusters table
     cursor.execute("ALTER TABLE clusters ADD FOREIGN KEY(implant_id) REFERENCES implant_db(implant_id) ")
     print('Created table "clusters" in the {} database'.format(db.db))
+
+def resetfordev():
+    '''Quickly clear and recreate the tables during development. '''
+    cursor,db = connectclusterdb ('root','%6m5kq2FymMXy5t3')
+    cursor.execute("SHOW TABLES")
+    cursor.fetchall()
+    cursor.execute("DROP TABLE clusters")
+    cursor.execute("DROP TABLE implant_db")
+
+    createimplanttable(cursor,db)
+    createclusterstable(cursor,db)
 
 def __implantgui():
     ''' This function asks a user to input the implant/region info about each electrode used in chronic electrophys recordings. The function will write a csv file into the folder that contains the relevant dataset. The csv file will be uploaded into the lab's mysql database into the implant_db table in the clusters database.'''
@@ -346,6 +357,8 @@ def submit_implant(g,cursor,db):
     query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
     cursor.execute(query, target_val_pair)
     uniqueid = cursor.execute('SELECT last_insert_id()')
+
+    db.commit()
     print('Added implant information to the implant_db table in the clusteringdb database.')
 
     # add the folder location and the implant barcode ID (unique, generated on
@@ -363,7 +376,7 @@ def submit_implant(g,cursor,db):
     # will automatically calculate/detect cluster metadata by implant (channel
     # group) and block (time) and write to another table in the database.
 
-def clustercrawl(topdir,ucode,channel_group):
+def clustercrawl(topdir,ucode,channel_group,cursor,db):
     '''Crawl through all of the subfolders in the top directory - these should contain
         all of the clusters by time bin (24h?). Info will be scraped from the datafiles
         and added to the clusters database.
@@ -399,7 +412,7 @@ def clustercrawl(topdir,ucode,channel_group):
         blockdf = cluststats(block, ucode, topdir)
 
         # submit cluster metadata from block to the database.
-        submitclusters(blockdf)
+        submitclusters(blockdf,cursor,db)
 
 
 def cluststats(blocklabel, uniqid, clustdir):
@@ -472,17 +485,18 @@ def cluststats(blocklabel, uniqid, clustdir):
 
         count +=1
 
+    trackvar = 'none'
     # Write data into a pandas dataframe.
     df = pd.DataFrame({ 'quality' : np.squeeze(qs), 'neg_pos_t' :
      neg_pos_t, 'half_width' : halfs,  'slope_falling' : falling , 'mean_amplitude': mean_amps,
      'fr' : clust_frs, 'cluster_number' : unique, 'duration' : np.tile(dur, unique.size),
      'clustering_t0' : np.tile(t0, unique.size), 'algorithm' : np.tile(clustal, unique.size),
-     'implant_id' : np.tile(uniqid,unique.size), 'block_label' : np.tile(blockname, unique.size),
+     'implant_id' : np.tile(uniqid,unique.size),'tracklinks':trackvar, 'block_label' : np.tile(blockname, unique.size),
      'folder_location' : np.tile(clustdir, unique.size) })
 
     return df
 
-def submitclusters(clstrdf):
+def submitclusters(clstrdf,cursor,db):
     '''SUBMITCLUSTERS Function called by other scripts that submits cluster data
     to the clusters table.
 
@@ -491,10 +505,10 @@ def submitclusters(clstrdf):
     Outputs:
         None.
         '''
-    clstrdic = clstrdf.to_dict(orient='records') # convert rows to dictionaries
-    targets = tuple( [ *clstrdic[0] ] )
-    cols = ', '.join(map(__escape_name, targets))
-    placeholders = ', '.join(['%({})s'.format(name) for name in targets])
+    clstrdic        = clstrdf.to_dict(orient='records') # convert rows to dictionaries
+    targets         = tuple( [ *clstrdic[0] ] )
+    cols            = ', '.join(map(__escape_name, targets))
+    placeholders    = ', '.join(['%({})s'.format(name) for name in targets])
       # assumes the keys are *valid column names*.
 
     for i in np.arange(0,clstrdf.shape[0]):
@@ -504,7 +518,7 @@ def submitclusters(clstrdf):
         query = 'INSERT INTO clusters ({}) VALUES ({})'.format(cols, placeholders)
         cursor.execute(query, tempd)
         uniqueid = cursor.lastrowid #execute('SELECT last_insert_id()')
-
+        db.commit()
         print('Submitted cluster {} information to the clusters table in the clusteringdb database as clust no. {}.'.format(i,uniqueid))
 
     # write pandas dataframe to a .csv file in the loc folder.
@@ -514,7 +528,7 @@ def submitclusters(clstrdf):
     print('Wrote info from {} clusters to .csv file {}'.format(np.shape(clstrdf)[0],fn))
 
 
-def upload_implant(cursor,db):
+def upload_implant(user,pwd):
     '''SUBMIT_IMPLANT Top level function that calls subscripts required for
     a user to submit and upload information about an implant, and subsequently
     trigger the automated detection and uploading of information about the
@@ -525,6 +539,8 @@ def upload_implant(cursor,db):
         DB: Database connection.
         '''
     #connect to the clusteringdb
+    # pwd = "%6m5kq2FymMXy5t3"
+    # usr = "root"
     cursor, db = connectclusterdb (user, pwd)
     # call the implant info GUI and collect relevant information.
     g = __implantgui()
@@ -532,4 +548,47 @@ def upload_implant(cursor,db):
     uniqueid, chgroup, mpath = submit_implant(g,cursor,db)
     # crawl through the clustering output and create entries in the clusters table
     # that correspond to the uniqueid of the implant submitted by the user.
-    clustercrawl(mpath,uniqueid,chgroup)
+    clustercrawl(mpath,uniqueid,chgroup,cursor,db)
+
+    db.close()
+    cursor.close()
+
+
+
+    # WRITE A SUITE OF TOOLS FOR SEARCHING AND RETURNING ITEMS IN THE DATABASES
+    # LINK THIS TO BUILDING NEURON CLASS INSTANCES
+    # WRITE TOOLS FOR DELETING ITEMS FROM THE DATABASE (SEARCH, RETURN BARCODES, DELETE THOSE)
+
+def searchclusters():
+    # Create a connection object
+    cursor,db = connectclusterdb ('root','%6m5kq2FymMXy5t3')#cursorclass = pymysql.cursors.DictCursor)
+
+
+    # "where" search:
+    query = "SELECT barcode FROM clusters WHERE mean_amplitude > 10 AND clusters.implant_id = implant_db.implant_id )  "
+    records = cursor.fetchall()
+
+
+
+
+    (SELECT salesman_id
+     FROM salesman
+     WHERE name='Paul Adam');
+
+
+
+    # SHOW  RECORDS IN TABLE - - - - - - - - - - -
+    # retreive one column only
+    query = "SELECT quality FROM clusters"
+    # retreive all columns
+    query = "SELECT * FROM implant_db"
+    #retrieve some columns
+    query = "SELECT quality, mean_amplitude FROM clusters"
+    ## getting records from the table
+    cursor.execute(query)
+    ## fetching all records from the 'cursor' object
+    records = cursor.fetchall()
+    ## Showing the data
+    for record in records:
+        print(record)
+    # - - - - - - - - - - - - - - - - - - - - - - - - -
