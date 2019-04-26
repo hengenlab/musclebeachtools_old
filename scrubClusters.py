@@ -21,7 +21,7 @@ def scrubClusters(datafile, start_cell=0):
 
 	for i in range(start_cell, num_cells):
 		cell=mb.neuron(datafile=datafile, cell_idx=i, file_list=file_list)
-		cell.checkqual(save_update=False)
+		cell.checkqual()
 
 	#prints the quality stats for the data set once you get to the end
 	#basically how many of each quality cell there was
@@ -35,13 +35,12 @@ def scrubClusters(datafile, start_cell=0):
 	print("Quality Statistics:\n1: {} \n2: {} \n3: {}".format(quals[1], quals[2], quals[3]))
 
 
-def makeFileList(datafile, silicon=False, start_day=0, end_day=1):
-	"""
-	sorts and loads all the files in a directory in the same way that neuon_class does
-	then puts each loaded array into a list and returns that list
 
-	this way if we're running through mulitple cells at a time it'll only need to load once
-	"""
+"""
+sorts and loads all the files in a directory in the same way that neuon_class does
+then puts each loaded array into a list and returns that list
+
+this way if we're running through mulitple cells at a time it'll only need to load once
 #current format is:
 #index:      data:
 #0				curr_clusts
@@ -52,7 +51,9 @@ def makeFileList(datafile, silicon=False, start_day=0, end_day=1):
 #5				auto_qual_array		
 #6				scrubbed_qual_array
 #7				scrubbed quality file name
+	"""
 
+def makeFileList(datafile, silicon=False, start_day=0, end_day=1):
 
     try:
         os.chdir(datafile)
