@@ -359,7 +359,7 @@ def submit_implant(g,cursor,db):
 
     cursor.execute(query, target_val_pair)
     uniqueid = cursor.lastrowid
-    
+
     db.commit()
     print('Added implant information to the implant_db table in the clusteringdb database.')
 
@@ -604,11 +604,11 @@ def searchclusters():
     # retreive one column only
     query = "SELECT quality FROM clusters"
     # retreive all columns
-    query = "SELECT * FROM implant_db"
+    query = "SELECT * FROM clusters"
     #retrieve some columns
     query = "SELECT quality, mean_amplitude FROM clusters"
     # show the column np_samples
-    query = "DESCRIBE implant_db"
+    query = "DESCRIBE clusters"
     ## getting records from the table
     cursor.execute(query)
     ## fetching all records from the 'cursor' object
