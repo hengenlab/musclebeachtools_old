@@ -8,6 +8,7 @@ import pandas as pd
 import glob
 from traits.api import HasTraits, Str, Enum, Range, Directory
 from traitsui.api import View, Item, Handler
+import pdb
 
 def connectclusterdb (usr, pwd):
     ''' CONNECTCLUSTERDB. Connect to the clusteringdb database.
@@ -72,7 +73,7 @@ def createimplanttable(cursor,db):
     #cursor = db.cursor()
     cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), sex VARCHAR(255), region VARCHAR(255), strain VARCHAR(255), genotype VARCHAR(255), daqsys VARCHAR(255), nchan TINYINT, changroup TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 SMALLINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), electrode VARCHAR(255), headstage VARCHAR(255) ) "     )
 
-    cursor.execute("ALTER TABLE implant_db ADD COLUMN implant_id INTEGER AUTO_INCREMENT PRIMARY KEY FIRST")
+    cursor.execute("ALTER TABLE implant_db ADD COLUMN implant_id INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST")
     print('Created table "implant_db" in the {} database'.format(db.db))
 
 def createclusterstable(cursor,db):
@@ -355,8 +356,9 @@ def submit_implant(g,cursor,db):
     placeholders = ', '.join(['%({})s'.format(name) for name in targets])
     # submit to the implants_db table.
     query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
+
     cursor.execute(query, target_val_pair)
-    uniqueid = cursor.execute('SELECT last_insert_id()')
+    uniqueid = cursor.lastrowid
 
     db.commit()
     print('Added implant information to the implant_db table in the clusteringdb database.')
@@ -555,35 +557,58 @@ def upload_implant(user,pwd):
 
 
 
-    # WRITE A SUITE OF TOOLS FOR SEARCHING AND RETURNING ITEMS IN THE DATABASES
+
     # LINK THIS TO BUILDING NEURON CLASS INSTANCES
     # WRITE TOOLS FOR DELETING ITEMS FROM THE DATABASE (SEARCH, RETURN BARCODES, DELETE THOSE)
 
 def searchclusters():
+    # WRITE A SUITE OF TOOLS FOR SEARCHING AND RETURNING ITEMS IN THE DATABASES
     # Create a connection object
     cursor,db = connectclusterdb ('root','%6m5kq2FymMXy5t3')#cursorclass = pymysql.cursors.DictCursor)
 
+    query = (
+            " SELECT clusters.barcode FROM clusters JOIN implant_db ON "
+            "clusters.implant_id = implant_db.implant_id WHERE "
+            "clusters.mean_amplitude > 10 AND clusters.slope_falling > 0 "
+            " AND implant_db.species = 'rat' AND implant_db.region IN ('CA1','HC') "
+            )
 
-    # "where" search:
-    query = "SELECT barcode FROM clusters WHERE mean_amplitude > 10 AND clusters.implant_id = implant_db.implant_id )  "
+    cursor.execute(query)
+    ## fetching all records from the 'cursor' object
     records = cursor.fetchall()
+    for record in records:
+        print(record)
+
+    # unpack records into a list then a string.
+    res = [rec for rec, in records]
+    res2 = ", ".join(str(x) for x in res)
 
 
+    query = "  SELECT implant_db.animal_id FROM clusters JOIN implant_db ON clusters.implant_id = implant_db.implant_id WHERE clusters.barcode IN ({}) ".format(res2)
 
-
-    (SELECT salesman_id
-     FROM salesman
-     WHERE name='Paul Adam');
-
-
-
-    # SHOW  RECORDS IN TABLE - - - - - - - - - - -
+        query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
+# # "where" search:
+    # query = "SELECT barcode FROM clusters WHERE mean_amplitude > 10 AND clusters.implant_id = implant_db.implant_id )  "
+    # records = cursor.fetchall()
+    #
+    #
+    #
+    #
+    # (SELECT salesman_id
+    #  FROM salesman
+    #  WHERE name='Paul Adam');
+    #
+    #
+    #
+    # # SHOW  RECORDS IN TABLE - - - - - - - - - - -
     # retreive one column only
     query = "SELECT quality FROM clusters"
     # retreive all columns
-    query = "SELECT * FROM implant_db"
+    query = "SELECT * FROM clusters"
     #retrieve some columns
     query = "SELECT quality, mean_amplitude FROM clusters"
+    # show the column np_samples
+    query = "DESCRIBE clusters"
     ## getting records from the table
     cursor.execute(query)
     ## fetching all records from the 'cursor' object
