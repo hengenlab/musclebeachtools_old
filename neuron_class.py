@@ -38,6 +38,11 @@ class neuron(object):
                 curr_spikes= file_list[1]
                 if(has_peak_files):
                     peak_ch= file_list[2]
+                    if np.size(np.where(peak_ch == -1)[0]) == 0:
+                        print('You are using older data, changing indexing')
+                        peak_ch = peak_ch-1
+                        curr_clust = curr_clust[0]-1
+                        curr_spikes = curr_spikes[0]-1
                 if(has_twf):
                     w= file_list[3]
                 if(has_amp):
@@ -112,6 +117,11 @@ class neuron(object):
                     curr_spikes = [np.load(spikefiles[i])+length[i] for i in range(start_day, end_day)]
                     if has_peak_files:
                         peak_ch = np.concatenate([np.load(peakfiles[i])for i in range(start_day, end_day)])
+                        if np.size(np.where(peak_ch == -1)[0]) == 0:
+                            print('You are using older data, changing indexing')
+                            peak_ch = peak_ch-1
+                            curr_clust = curr_clust[0]-1
+                            curr_spikes = curr_spikes[0]-1
                     if has_twf and len(wavefiles)==0:
                         w=np.load(templates_wf[0])
                     elif has_twf:
@@ -132,22 +142,26 @@ class neuron(object):
                 print("this cannot be done yet")
                 #can't do this yet, see past code for an idea of how it will be done
             else:
+                if np.shape(curr_clust)[0] == 1:
+                    curr_clust = curr_clust[0]
+                if np.shape(curr_spikes)[0] == 1:
+                    curr_spikes = curr_spikes[0]
                 #pulls out the unique cluster numbers
                 self.unique_clusters = np.unique(curr_clust)
                 clust_idx = self.unique_clusters[int(cell_idx)]
                 
                 #pulls out all indices of that cluster spiking based on cluster index and spike clusters
-                spk_idx = np.where(curr_clust[0] == clust_idx)[0]
+                spk_idx = np.where(curr_clust == clust_idx)[0]
                 #loads all times at those indicies
-                spiketimes = curr_spikes[0][spk_idx]/fs
+                spiketimes = curr_spikes[spk_idx]/fs
                 #if there are peak channels this loads them into the instance variables
                 #eventually this will be determined by day so that's why it's loaded here
                 if has_peak_files:
-                    peak_ch_no0 = peak_ch[peak_ch > 0]
+                    peak_ch_no0 = np.delete(peak_ch,np.where(peak_ch == -1)[0],0)
                     self.peak_chans = peak_ch_no0[int(cell_idx)]
 
             if has_twf:
-                w_real = np.delete(w,np.where(peak_ch < 0)[0],0)
+                w_real = np.delete(w,np.where(peak_ch == -1)[0],0)
                 self.wf_temp = w_real[cell_idx]
                 bottom      = np.argmin(self.wf_temp)
                 top         = np.argmax(self.wf_temp[bottom:]) + bottom
