@@ -18,6 +18,11 @@ def scrubClusters(datafile, start_cell=0):
 
 	if len(sq) > 0:
 		print ("at least one of these cells has been scrubbed before")
+        sq_array = file_list[6]
+        first_unscrubbed = sq_array.index(np.nan)
+        print("the first unscrubbed cell is index {}".format(first_unscrubbed))
+        start_cell= input("what cell index would you like to start scrubbing at? From 0 - {}".format(num_cells))
+
 
 	for i in range(start_cell, num_cells):
 		cell=mb.neuron(datafile=datafile, cell_idx=i, file_list=file_list)
