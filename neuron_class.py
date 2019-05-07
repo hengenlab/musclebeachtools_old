@@ -7,6 +7,8 @@ import time
 import seaborn as sns
 import matplotlib
 import glob
+import neuraltoolkit.ntk_ecube as ntk
+import datetime as dt
 #matplotlib.use('TkAgg')
 from IPython.core.debugger import Tracer
 
@@ -24,7 +26,7 @@ class neuron(object):
                 os.chdir(datafile)
             except FileNotFoundError:
                 print("*** Data File does not exist *** check the path")
-                return
+                #return
 
             if len(file_list)>0:
                 print("using file list")
@@ -53,6 +55,7 @@ class neuron(object):
                     self.scrubbed_qual_array=file_list[6]
                     self._scqu_file=file_list[7]
                 length = np.zeros(end_day)
+                spikefiles = np.sort(glob.glob("*spike_times*.npy"))
                 
             else:
 
@@ -136,8 +139,6 @@ class neuron(object):
                 except IndexError:
                     print("files do not exist for that day range")
 
-
-
             if end_day-start_day > 1:
                 print("this cannot be done yet")
                 #can't do this yet, see past code for an idea of how it will be done
@@ -184,6 +185,11 @@ class neuron(object):
             #sets on an off time based on first and last numbers in the spike time array
             self.onTime = np.array([self.time[0]])
             self.offTime = np.array([self.time[-1]])
+            startTimeIndex = spikefiles[0].index("times_") + 6
+            startTimeIndexEnd = spikefiles[0].index("-timee_")
+            clocktimeSIdx = spikefiles[0].index("_2018-")
+            self.ecube_start_time = int(spikefiles[0][startTimeIndex : startTimeIndexEnd])
+            self.clocktime_start_time = spikefiles[0][clocktimeSIdx: clocktimeSIdx+20]
 
             print("\nData set information:\nPeak Channels: {}\nWaveform Template: {}\nNumber of clusters: {}".format(has_peak_files, has_twf, len(self.unique_clusters)))
 
@@ -276,6 +282,23 @@ class neuron(object):
             ms_per_sample       = seconds_per_sample*1e3
             self.neg_pos_time   = np_samples * ms_per_sample
         self.datatype = datatype
+'''creates a new instance variable that consists of the spike times converted to clock times'''
+    def spikeTimeToClockTime(self):
+        yr = int(self.clocktime_start_time[1:5])
+        month = int(self.clocktime_start_time[6:8])
+        day = int(self.clocktime_start_time[9:11])
+        hr = int(self.clocktime_start_time[12:14])
+        minu = int(self.clocktime_start_time[15:17])
+        sec = int(self.clocktime_start_time[18:20])
+
+        t = dt.datetime(yr,month,day,hr,minu,sec,00)
+        self.clock_spk_times = []
+        for time in self.time:
+            tdelt = dt.timedelta(seconds = time)
+            tnew = t+tdelt
+            strTime = "{}-{}-{}___{}:{}:{}:{}".format(tnew.year, tnew.month, tnew.day, tnew.hour, tnew.minute, tnew.second, tnew.microsecond)
+            self.clock_spk_times.append(strTime)
+
 
 
     def plotFR(self, axes = None, savehere=None,counter=None, binsz = 3600):
