@@ -18,10 +18,10 @@ def scrubClusters(datafile, start_cell=0):
 
 	if len(sq) > 0:
 		print ("at least one of these cells has been scrubbed before")
-        sq_array = file_list[6]
-        first_unscrubbed = sq_array.index(np.nan)
-        print("the first unscrubbed cell is index {}".format(first_unscrubbed))
-        start_cell= input("what cell index would you like to start scrubbing at? From 0 - {}".format(num_cells))
+		sq_array = file_list[6]
+		first_unscrubbed = sq_array.index(np.nan)
+		print("the first unscrubbed cell is index {}".format(first_unscrubbed))
+		start_cell= input("what cell index would you like to start scrubbing at? From 0 - {}".format(num_cells))
 
 
 	for i in range(start_cell, num_cells):
@@ -60,110 +60,110 @@ this way if we're running through mulitple cells at a time it'll only need to lo
 
 def makeFileList(datafile, silicon=False, start_day=0, end_day=1):
 
-    try:
-        os.chdir(datafile)
-    except FileNotFoundError:
-        print("*** Data File does not exist *** check the path")
-        return
+	try:
+		os.chdir(datafile)
+	except FileNotFoundError:
+		print("*** Data File does not exist *** check the path")
+		return
 
-    file_list=[]
-    length = np.zeros(end_day)
+	file_list=[]
+	length = np.zeros(end_day)
 
-        
+		
    #SORTS DATA FILES
-    if(silicon):
-        ch = input("What probe would you like to look at?")
-        f="*chg_"+str(ch)+"*"
-        channelFiles=np.sort(glob.glob(f))
-        #sorts spikes and clusters
-        spikefiles = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_times*.npy"))]
-        #print("spike_files: ", spikefiles)
-        clustfiles = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_clusters*.npy"))]
-        #sorts any peak channel files found in folder
-        peakfiles = [channelFiles[i] for i in range(len(channelFiles)) if (channelFiles[i] in np.sort(glob.glob("*peakchannel*.npy")) or channelFiles[i] in np.sort(glob.glob("*max_channel*.npy")))]
-        #sorts wavefiles in two forms, named "waveform" or "templates"
-        wavefiles=[channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*waveform*.npy"))]
-        templates_all=[channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*templates*.npy"))]
-        #since there are multiple files that have "templates" at the end this pulls out only the ones we want
-        templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
-        #checks for amplitude files
-        amplitude_files = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*amplitudes*.npy"))]
-        #this checks for an automated quality array from the clustering algorithm
-        aq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*qual*.npy"))]
-        #looks for scrubbed quality and loads if possible
-        sq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*scrubbed*.npy"))]
-    #pulls data if not silicon
-    else:
-        #sorts spikes and clusters
-        spikefiles = np.sort(glob.glob("*spike_times*.npy"))
-        clustfiles = np.sort(glob.glob("*spike_clusters*.npy"))
-        #sorts any peak channel files found in folder
-        peakfiles = np.sort(glob.glob("*max_channel*.npy"))
-        if len(peakfiles)==0:
-            peakfiles=np.sort(glob.glob("*peakchannel*.npy"))
-        #peakfiles.extend(np.sort(glob.glob("*max_channel*.npy")))
-        #sorts wavefiles in two forms, named "waveform" or "templates"
-        wavefiles = np.sort(glob.glob("*waveform*.npy"))
-        templates_all=np.sort(glob.glob("*template*.npy"))
-        #since there are multiple files that have "templates" at the end this pulls out only the ones we want
-        templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
-        #checks for amplitude files
-        amplitude_files = np.sort(glob.glob("*amplitudes*.npy"))
-        #this checks for an automated quality array from the clustering algorithm
-        aq = np.sort(glob.glob("*qual*.npy"))
-        #looks for scrubbed quality and loads if possible
-        sq = np.sort(glob.glob("*scrubbed*.npy"))
+	if(silicon):
+		ch = input("What probe would you like to look at?")
+		f="*chg_"+str(ch)+"*"
+		channelFiles=np.sort(glob.glob(f))
+		#sorts spikes and clusters
+		spikefiles = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_times*.npy"))]
+		#print("spike_files: ", spikefiles)
+		clustfiles = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_clusters*.npy"))]
+		#sorts any peak channel files found in folder
+		peakfiles = [channelFiles[i] for i in range(len(channelFiles)) if (channelFiles[i] in np.sort(glob.glob("*peakchannel*.npy")) or channelFiles[i] in np.sort(glob.glob("*max_channel*.npy")))]
+		#sorts wavefiles in two forms, named "waveform" or "templates"
+		wavefiles=[channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*waveform*.npy"))]
+		templates_all=[channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*templates*.npy"))]
+		#since there are multiple files that have "templates" at the end this pulls out only the ones we want
+		templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
+		#checks for amplitude files
+		amplitude_files = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*amplitudes*.npy"))]
+		#this checks for an automated quality array from the clustering algorithm
+		aq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*qual*.npy"))]
+		#looks for scrubbed quality and loads if possible
+		sq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*scrubbed*.npy"))]
+	#pulls data if not silicon
+	else:
+		#sorts spikes and clusters
+		spikefiles = np.sort(glob.glob("*spike_times*.npy"))
+		clustfiles = np.sort(glob.glob("*spike_clusters*.npy"))
+		#sorts any peak channel files found in folder
+		peakfiles = np.sort(glob.glob("*max_channel*.npy"))
+		if len(peakfiles)==0:
+			peakfiles=np.sort(glob.glob("*peakchannel*.npy"))
+		#peakfiles.extend(np.sort(glob.glob("*max_channel*.npy")))
+		#sorts wavefiles in two forms, named "waveform" or "templates"
+		wavefiles = np.sort(glob.glob("*waveform*.npy"))
+		templates_all=np.sort(glob.glob("*template*.npy"))
+		#since there are multiple files that have "templates" at the end this pulls out only the ones we want
+		templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
+		#checks for amplitude files
+		amplitude_files = np.sort(glob.glob("*amplitudes*.npy"))
+		#this checks for an automated quality array from the clustering algorithm
+		aq = np.sort(glob.glob("*qual*.npy"))
+		#looks for scrubbed quality and loads if possible
+		sq = np.sort(glob.glob("*scrubbed*.npy"))
 
-    has_peak_files = not len(peakfiles)==0
-    has_twf = not (len(wavefiles)==0 and len(templates_wf)==0)
-    has_aqual = not len(aq)==0
-    has_squal = not len(sq)==0
+	has_peak_files = not len(peakfiles)==0
+	has_twf = not (len(wavefiles)==0 and len(templates_wf)==0)
+	has_aqual = not len(aq)==0
+	has_squal = not len(sq)==0
 
-    try:
-        print("Loading files...")
-        curr_clust = [np.load(clustfiles[i]) for i in range(start_day, end_day)]
-        curr_spikes = [np.load(spikefiles[i])+length[i] for i in range(start_day, end_day)]
-        file_list.append(curr_clust)
-        file_list.append(curr_spikes)
-        if has_peak_files:
-            peak_ch = np.concatenate([np.load(peakfiles[i])for i in range(start_day, end_day)])
-            file_list.append(peak_ch)
-        else:
-            file_list.append([])
-        if has_twf and len(wavefiles)==0:
-            w=np.load(templates_wf[0])
-            file_list.append(w)
-        elif has_twf:
-            w=np.load(wavefiles[0])
-            file_list.append(w)
-        else:
-            file_list.append([])
-        if len(amplitude_files)>0:
-            amps=np.load(amplitude_files[0])
-            file_list.append(amps)
-            #self.amplitudes=np.load(amplitude_files[0])
-        else:
-            file_list.append([])
-        if has_aqual:
-            aqa=np.load(aq[0])[peak_ch != 0]
-            file_list.append(aqa)
-       	else:
-       	    file_list.append([])
-            #self.auto_qual_array = np.load(aq[0])[peak_ch != 0]
-        if has_squal:
-            sqa=np.load(sq[0])
-            file_list.append(sqa)
-            #self.scrubbed_qual_array = np.load(sq[0])
-            file_list.append(sq[0])
-        else:
-            file_list.append([])
-    except IndexError:
-        print("files do not exist for that day range")
+	try:
+		print("Loading files...")
+		curr_clust = [np.load(clustfiles[i]) for i in range(start_day, end_day)]
+		curr_spikes = [np.load(spikefiles[i])+length[i] for i in range(start_day, end_day)]
+		file_list.append(curr_clust)
+		file_list.append(curr_spikes)
+		if has_peak_files:
+			peak_ch = np.concatenate([np.load(peakfiles[i])for i in range(start_day, end_day)])
+			file_list.append(peak_ch)
+		else:
+			file_list.append([])
+		if has_twf and len(wavefiles)==0:
+			w=np.load(templates_wf[0])
+			file_list.append(w)
+		elif has_twf:
+			w=np.load(wavefiles[0])
+			file_list.append(w)
+		else:
+			file_list.append([])
+		if len(amplitude_files)>0:
+			amps=np.load(amplitude_files[0])
+			file_list.append(amps)
+			#self.amplitudes=np.load(amplitude_files[0])
+		else:
+			file_list.append([])
+		if has_aqual:
+			aqa=np.load(aq[0])[peak_ch != 0]
+			file_list.append(aqa)
+		else:
+			file_list.append([])
+			#self.auto_qual_array = np.load(aq[0])[peak_ch != 0]
+		if has_squal:
+			sqa=np.load(sq[0])
+			file_list.append(sqa)
+			#self.scrubbed_qual_array = np.load(sq[0])
+			file_list.append(sq[0])
+		else:
+			file_list.append([])
+	except IndexError:
+		print("files do not exist for that day range")
 
-    return file_list
+	return file_list
 
-    
-    
+	
+	
 
 
 
