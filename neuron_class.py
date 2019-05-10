@@ -282,8 +282,10 @@ class neuron(object):
             ms_per_sample       = seconds_per_sample*1e3
             self.neg_pos_time   = np_samples * ms_per_sample
         self.datatype = datatype
-'''creates a new instance variable that consists of the spike times converted to clock times'''
+
+
     def spikeTimeToClockTime(self):
+        '''creates a new instance variable that consists of the spike times converted to clock times'''
         yr = int(self.clocktime_start_time[1:5])
         month = int(self.clocktime_start_time[6:8])
         day = int(self.clocktime_start_time[9:11])
