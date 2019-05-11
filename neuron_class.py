@@ -13,7 +13,7 @@ import datetime as dt
 from IPython.core.debugger import Tracer
 
 class neuron(object):
-    '''Create instances (objects) of the class neuron ''' 
+    '''Create instances (objects) of the class neuron '''
     def __init__(self, datafile, datatype='npy', cell_idx = 0, start_day=0, end_day=1, silicon=False, file_list=[]):
         if datatype == 'npy':
 
@@ -56,7 +56,7 @@ class neuron(object):
                     self._scqu_file=file_list[7]
                 length = np.zeros(end_day)
                 spikefiles = np.sort(glob.glob("*spike_times*.npy"))
-                
+
             else:
 
                #SORTS DATA FILES
@@ -150,7 +150,7 @@ class neuron(object):
                 #pulls out the unique cluster numbers
                 self.unique_clusters = np.unique(curr_clust)
                 clust_idx = self.unique_clusters[int(cell_idx)]
-                
+
                 #pulls out all indices of that cluster spiking based on cluster index and spike clusters
                 spk_idx = np.where(curr_clust == clust_idx)[0]
                 #loads all times at those indicies
@@ -175,7 +175,7 @@ class neuron(object):
                 if self.neg_pos_time >=0.4:
                     self.cell_type  = 'RSU'
                 if self.neg_pos_time <0.4:
-                    self.cell_type = 'FS' 
+                    self.cell_type = 'FS'
 
             self._has_twf = has_twf
             self._has_squal = has_squal
@@ -187,14 +187,14 @@ class neuron(object):
             self.offTime = np.array([self.time[-1]])
             startTimeIndex = spikefiles[0].index("times_") + 6
             startTimeIndexEnd = spikefiles[0].index("-timee_")
-            clocktimeSIdx = spikefiles[0].index("_2018-")
+            clocktimeSIdx = spikefiles[0].index("_2019-") # this was hardcoded to 2018. changed to 2019. need to make flexible. KBH 5/11/19
             self.ecube_start_time = int(spikefiles[0][startTimeIndex : startTimeIndexEnd])
             self.clocktime_start_time = spikefiles[0][clocktimeSIdx: clocktimeSIdx+20]
 
             print("\nData set information:\nPeak Channels: {}\nWaveform Template: {}\nNumber of clusters: {}".format(has_peak_files, has_twf, len(self.unique_clusters)))
 
 
-            #QUALITY 
+            #QUALITY
             if has_squal:
                 last_idx=None
                 for n in range(len(self.scrubbed_qual_array)):
@@ -258,7 +258,7 @@ class neuron(object):
 
             self.tailSlope  = f['neurons/neuron_'+str(cell_idx)+'/tailSlope'][0]
             self.trem       = f['neurons/neuron_'+str(cell_idx)+'/trem'][0]
-            
+
             self.time       = f['neurons/neuron_'+str(cell_idx)+'/time'][:]
             self.quality    = np.int(f['neurons/neuron_'+str(cell_idx)+'/quality'][0])
             self.cell_idx   = cell_idx
@@ -273,7 +273,7 @@ class neuron(object):
                 interp_factor = 3
             elif og_samples == 91 or og_samples == 161:
                 interp_factor = 5
-            
+
             bottom      = np.argmin(self.meantrace)
             top         = np.argmax(self.meantrace[bottom:]) + bottom
             np_samples  = top - bottom
@@ -320,11 +320,11 @@ class neuron(object):
             with sns.axes_style("white"):
                 fig1        = plt.figure()
                 currentAxis = plt.gca()
-                plt.plot(xbins[:-1],hzcount)     
+                plt.plot(xbins[:-1],hzcount)
 
         plt.gca().set_xlim([0,edges[-1]/binsz])
         ylim    = plt.gca().get_ylim()[1]
-        
+
         # make an array of the lights-off times
         if self.datatype == 'hdf5':
             lt_off = np.arange(12*3600,max(self.time)+12*3600,24*3600)
@@ -344,7 +344,7 @@ class neuron(object):
             for ee in self.offTime[:-1]/binsz:
                 count += 1
                 wdth = self.onTime[count]/binsz - ee
-            
+
             plt.plot((self.onTime[0]/binsz,self.onTime[0]/binsz),(0,ylim),'g--')
             plt.plot((self.offTime[-1]/binsz,self.offTime[-1]/binsz),(0,ylim),'r--')
 
@@ -370,7 +370,7 @@ class neuron(object):
 
     def isi_hist(self, start = 0, end = False, isi_thresh = 0.1, nbins = 101):
         '''Return a histogram of the interspike interval (ISI) distribution. This is a method built into the class "neuron", so input is self (). This is typically used to evaluate whether a spike train exhibits a refractory period and is thus consistent with a single unit or a multi-unit recording. '''
-        # For a view of how much this cell is like a "real" neuron, calculate the ISI distribution between 0 and 100 msec. This function will plot the bar histogram of that distribution and calculate the percentage of ISIs that fall under 2 msec. 
+        # For a view of how much this cell is like a "real" neuron, calculate the ISI distribution between 0 and 100 msec. This function will plot the bar histogram of that distribution and calculate the percentage of ISIs that fall under 2 msec.
         if end == False:
             end = max(self.time)
         idx = np.where(np.logical_and(self.time>=start, self.time<=end))[0]
@@ -383,7 +383,7 @@ class neuron(object):
 
         plt.ion()
         with sns.axes_style("white"):
-            fig1            = plt.figure()  
+            fig1            = plt.figure()
             ax              = fig1.add_subplot(111)
             ax.bar(edges[1:]*1000-0.5, hist_isi[0],color='#6a79f7')
             ax.set_ylim(bottom = 0)
@@ -633,10 +633,10 @@ class neuron(object):
             tcount += 1
 
         hrcont          = np.delete( hrcont,[np.where(hrcont==999.0)] )
-        
+
         if self.time[-1] < binsz:
             print ("Not enough data for firing rate, check bin size")
-            newcont_text    = 'Mean Contamination by hour: --not enough data--' 
+            newcont_text    = 'Mean Contamination by hour: --not enough data--'
             newcont_text2   = 'Median Contamination by hour: --not enough data--'
         else:
             newcont_text    = 'Mean Contamination by bin size: {0:.{1}} percent.' .format(np.nanmean(hrcont),4)
@@ -648,10 +648,10 @@ class neuron(object):
         sns.set(style="ticks")
         sns.despine()
 
-        
+
         numGraphs=2
-        
-        if self._has_twf: 
+
+        if self._has_twf:
             numGraphs = 3
 
 
@@ -779,7 +779,7 @@ class neuron(object):
 
         plt.close(fig8)
 
-        # Convert g to number and compare this to the current quality. if it's different, overwrite the HDF5 file and update the quality field there. 
+        # Convert g to number and compare this to the current quality. if it's different, overwrite the HDF5 file and update the quality field there.
         if self.datatype == 'hdf5':
             if self.quality != float(g):
                 f1          = h5py.File(self.HDF5_tag[0], 'r+')
@@ -833,7 +833,7 @@ class neuron(object):
 
     def setonoff(self,keepprior=1, binsz = 3600):
         '''Plot the firing rate of the neuron in 1h bins and ask the user to click on the figure to indicate the on time and then again for the off time. If KEEPPRIOR is set as 1, this will preserve any currently existent on/off times that are between the newly indicated on/off time. If KEEPPRIOR is set as 0, any currently saved on/off times will be erased and replaced with whatever the user selects when running this code.'''
-        
+
         global ix, ix2, cid
         ix  = None
         ix2 = None
@@ -848,7 +848,7 @@ class neuron(object):
                 ix2, iy = event.xdata, event.ydata
                 print ( ' You clicked at x = {} hours. '.format(ix2) )
 
-            
+
 
             bbb = plt.gcf()
             bbb.canvas.mpl_disconnect(cid)
@@ -869,12 +869,12 @@ class neuron(object):
                 fig1    = plt.figure()
                 ax1     = plt.subplot(1,1,1)
                 ax1.plot(xbins[:-1],hzcount)
-            
+
             ax1.set_xlim(0,edges[-1]/3600)
 
             ylim    = ax1.get_ylim()[1]
             ylim    = plt.gca().get_ylim()[1]
-        
+
             # make an array of the lights-off times
             lt_off = np.arange(12*3600,max(self.time)+12*3600,24*3600)
             #currentAxis = plt.gca()
@@ -895,10 +895,10 @@ class neuron(object):
             plt.show()
 
             # Set the on time for this cell:
- 
+
             xlim    = plt.xlim()[1]
             temptxt = ax1.text(xlim*0.1, ylim*0.9, 'Click to set the on time:')
-            
+
             global cid
             cid = fig1.canvas.mpl_connect('button_press_event', __onclick)
 
@@ -909,7 +909,7 @@ class neuron(object):
         #global ix, ix2
         fign = __pltfr(self)
 
-        # set the on time  - - - - - - - - - - - - 
+        # set the on time  - - - - - - - - - - - -
         while ix is None:
             fign.canvas.flush_events()
             time.sleep(0.05)
@@ -921,9 +921,9 @@ class neuron(object):
         newax.set_ylim(0, ylim )
         newax.plot((ix,ix),(0,ylim),'g--')
 
-        ontime  = ix 
+        ontime  = ix
 
-        # And now deal with the off time: - - - - - 
+        # And now deal with the off time: - - - - -
         txt = newax.texts[1]
         txt.set_text('And now select the off time:')
 
@@ -952,7 +952,7 @@ class neuron(object):
         if keepprior == 1:
 
             if np.shape(f1['neurons/neuron_'+str(self.HDF5_tag[1])+'/onTime']) != ():
-                # Case in which there are already on/off times (there _should_ be). 
+                # Case in which there are already on/off times (there _should_ be).
                 onTs    = np.squeeze(f1['neurons/neuron_'+str(self.HDF5_tag[1])+'/onTime'][:])
                 offTs   = np.squeeze(f1['neurons/neuron_'+str(self.HDF5_tag[1])+'/offTime'][:])
 
@@ -960,11 +960,11 @@ class neuron(object):
                     onTs    = onTs[1:]
                     offTs   = offTs[0:-1]
                     # get rid of any remaining on/off times prior to the new on time
-                    onTs    = np.delete(onTs, onTs[ np.where( onTs<ontime )]) 
+                    onTs    = np.delete(onTs, onTs[ np.where( onTs<ontime )])
                     offTs   = np.delete(offTs, offTs[ np.where( offTs<ontime )])
 
                     # get rid of any remaining on/off times following the new off time
-                    onTs    = np.delete(onTs, onTs[ np.where( onTs>offtime )]) 
+                    onTs    = np.delete(onTs, onTs[ np.where( onTs>offtime )])
                     offTs   = np.delete(offTs, offTs[ np.where( offTs>offtime )])
                 elif np.size(onTs) == 1:
                     onTs    = []
@@ -978,7 +978,7 @@ class neuron(object):
                 ontdat  = np.append(ontime, onTs)
                 ontdat  = np.squeeze([ontdat])
                 offtdat = np.append(offTs, offtime)
-                offtdat = np.squeeze([offtdat]) 
+                offtdat = np.squeeze([offtdat])
 
                 del f1['neurons/neuron_'+str(self.HDF5_tag[1])+'/onTime']
                 del f1['neurons/neuron_'+str(self.HDF5_tag[1])+'/offTime']
@@ -998,10 +998,10 @@ class neuron(object):
                 f1.create_dataset('neurons/neuron_'+str(self.HDF5_tag[1])+'/offTime', data = [offtdat] )
 
 
-            
+
 
         elif keepprior == 0:
-            # this is the case in which you want to WIPE the prior on/off times and start with a clean slate. 
+            # this is the case in which you want to WIPE the prior on/off times and start with a clean slate.
             ontdat  = ontime
             offtdat = offtime
 
@@ -1012,7 +1012,7 @@ class neuron(object):
             f1.create_dataset('neurons/neuron_'+str(self.HDF5_tag[1])+'/offTime', data = [offtdat] )
 
         f1.close()
-        
+
 
         f1          = h5py.File(self.HDF5_tag[0], 'r')
         try:
@@ -1028,17 +1028,3 @@ class neuron(object):
         plt.close(fign)
 
         print('Saved new on/off times to disk.')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
