@@ -30,25 +30,25 @@ class neuron(object):
 
             if len(file_list)>0:
                 print("using file list")
-                has_peak_files= not len(file_list[2]) ==0
-                has_twf= not len(file_list[3])==0
-                has_aqual= not len(file_list[5])==0
-                has_squal= not len(file_list[6])==0
-                has_amp= not len(file_list[4])==0
+                has_peak_files  = not len(file_list[2]) == 0
+                has_twf         = not len(file_list[3]) == 0
+                has_aqual       = not len(file_list[5]) == 0
+                has_squal       = not len(file_list[6]) == 0
+                #has_amp= not len(file_list[4])==0
 
-                curr_clust= file_list[0]
-                curr_spikes= file_list[1]
+                curr_clust  = file_list[0]
+                curr_spikes = file_list[1]
                 if(has_peak_files):
-                    peak_ch= file_list[2]
+                    peak_ch = file_list[2]
                     if np.size(np.where(peak_ch == -1)[0]) == 0:
                         print('You are using older data, changing indexing')
-                        peak_ch = peak_ch-1
-                        curr_clust = curr_clust[0]-1
+                        peak_ch     = peak_ch-1
+                        curr_clust  = curr_clust[0]-1
                         curr_spikes = curr_spikes[0]-1
                 if(has_twf):
-                    w= file_list[3]
-                if(has_amp):
-                    self.amplitudes= file_list[4]
+                    w = file_list[3]
+                #if(has_amp):
+                    #self.amplitudes= file_list[4]
                 if(has_aqual):
                     self.auto_qual_array=file_list[5]
                 if(has_squal):
@@ -61,22 +61,22 @@ class neuron(object):
 
                #SORTS DATA FILES
                 if(silicon):
-                    ch = input("What probe would you like to look at?")
-                    f="*chg_"+str(ch)+"*"
-                    channelFiles=np.sort(glob.glob(f))
+                    ch  = input("What probe would you like to look at?")
+                    f   = "*chg_"+str(ch)+"*"
+                    channelFiles = np.sort(glob.glob(f))
                     #sorts spikes and clusters
-                    spikefiles = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_times*.npy"))]
+                    spikefiles  = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_times*.npy"))]
                     #print("spike_files: ", spikefiles)
-                    clustfiles = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_clusters*.npy"))]
+                    clustfiles  = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_clusters*.npy"))]
                     #sorts any peak channel files found in folder
-                    peakfiles = [channelFiles[i] for i in range(len(channelFiles)) if (channelFiles[i] in np.sort(glob.glob("*peakchannel*.npy")) or channelFiles[i] in np.sort(glob.glob("*max_channel*.npy")))]
+                    peakfiles   = [channelFiles[i] for i in range(len(channelFiles)) if (channelFiles[i] in np.sort(glob.glob("*peakchannel*.npy")) or channelFiles[i] in np.sort(glob.glob("*max_channel*.npy")))]
                     #sorts wavefiles in two forms, named "waveform" or "templates"
-                    wavefiles=[channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*waveform*.npy"))]
-                    templates_all=[channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*templates*.npy"))]
+                    wavefiles = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*waveform*.npy"))]
+                    templates_all = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*templates*.npy"))]
                     #since there are multiple files that have "templates" at the end this pulls out only the ones we want
-                    templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
+                    templates_wf = [fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
                     #checks for amplitude files
-                    amplitude_files = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*amplitudes*.npy"))]
+                    #amplitude_files = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*amplitudes*.npy"))]
                     #this checks for an automated quality array from the clustering algorithm
                     aq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*qual*.npy"))]
                     #looks for scrubbed quality and loads if possible
@@ -97,7 +97,7 @@ class neuron(object):
                     #since there are multiple files that have "templates" at the end this pulls out only the ones we want
                     templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
                     #checks for amplitude files
-                    amplitude_files = np.sort(glob.glob("*amplitudes*.npy"))
+                    #amplitude_files = np.sort(glob.glob("*amplitudes*.npy"))
                     #this checks for an automated quality array from the clustering algorithm
                     aq = np.sort(glob.glob("*qual*.npy"))
                     #looks for scrubbed quality and loads if possible
@@ -129,8 +129,8 @@ class neuron(object):
                         w=np.load(templates_wf[0])
                     elif has_twf:
                         w=np.load(wavefiles[0])
-                    if len(amplitude_files)>0:
-                        self.amplitudes=np.load(amplitude_files[0])
+                    #if len(amplitude_files)>0:
+                    #    self.amplitudes=np.load(amplitude_files[0])
                     if has_aqual:
                         self.auto_qual_array = np.load(aq[0])[peak_ch >= 0]
                     if has_squal:
