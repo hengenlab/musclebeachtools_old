@@ -14,7 +14,7 @@ from IPython.core.debugger import Tracer
 
 class neuron(object):
     '''Create instances (objects) of the class neuron '''
-    def __init__(self, datafile, datatype='npy', cell_idx = 0, start_day=0, end_day=1, silicon=False, file_list=[]):
+    def __init__(self, datafile, datatype='npy', cell_idx = 0, start_day=0, end_day=1, silicon=False,probenumber=1,file_list=[]):
         if datatype == 'npy':
 
             print('You are using WashU data')
@@ -61,7 +61,8 @@ class neuron(object):
 
                #SORTS DATA FILES
                 if(silicon):
-                    ch  = input("What probe would you like to look at?")
+                    #ch  = input("What probe would you like to look at?")
+                    ch = probenumber
                     f   = "*chg_"+str(ch)+"*"
                     channelFiles = np.sort(glob.glob(f))
                     #sorts spikes and clusters
