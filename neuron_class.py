@@ -10,7 +10,7 @@ import glob
 import neuraltoolkit.ntk_ecube as ntk
 import datetime as dt
 #matplotlib.use('TkAgg')
-from IPython.core.debugger import Tracer
+import pdb
 
 class neuron(object):
     '''Create instances (objects) of the class neuron '''
@@ -129,8 +129,10 @@ class neuron(object):
                         w=np.load(templates_wf[0])
                     elif has_twf:
                         w=np.load(wavefiles[0])
-                    #if len(amplitude_files)>0:
-                    #    self.amplitudes=np.load(amplitude_files[0])
+                    if len(amplitude_files)>0:
+                        pdb.set_trace()
+                        tempamps = np.load(amplitude_files[0])
+                        self.amplitudes = int( tempamps  )
                     if has_aqual:
                         self.auto_qual_array = np.load(aq[0])[peak_ch >= 0]
                     if has_squal:
