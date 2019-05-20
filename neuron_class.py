@@ -14,11 +14,12 @@ import pdb
 
 class neuron(object):
     '''Create instances (objects) of the class neuron '''
-    def __init__(self, datafile, datatype='npy', cell_idx = 0, start_day=0, end_day=1, silicon=False,probenumber=1,file_list=[]):
+    def __init__(self, datafile, datatype='npy', cell_idx = 0, start_day=0, end_day=1, silicon=False,probenumber=1,fs=25000,file_list=[]):
         if datatype == 'npy':
 
             print('You are using WashU data')
-            fs = 25000
+            # fs = 25000
+            print('Sampling rate {:10.2f}'.format(fs))
             print('working on neuron '+str(cell_idx)+'\n')
 
             # going to folder that contains processed data if it exists
@@ -131,7 +132,7 @@ class neuron(object):
                     elif has_twf:
                         w=np.load(wavefiles[0])
                     if len(amplitude_files)>0:
-                        pdb.set_trace()
+                        # pdb.set_trace()
                         tempamps = np.load(amplitude_files[0])
 
                     if has_aqual:
