@@ -48,8 +48,8 @@ class neuron(object):
                         curr_spikes = curr_spikes[0]-1
                 if(has_twf):
                     w = file_list[3]
-                if(has_amp):
-                    self.amplitudes= file_list[4]
+                #if(has_amp):
+                #    self.amplitudes= file_list[4]
                 if(has_aqual):
                     self.auto_qual_array=file_list[5]
                 if(has_squal):
@@ -78,7 +78,7 @@ class neuron(object):
                     #since there are multiple files that have "templates" at the end this pulls out only the ones we want
                     templates_wf = [fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
                     #checks for amplitude files
-                    amplitude_files = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*amplitudes*.npy"))]
+                    #amplitude_files = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*amplitudes*.npy"))]
                     #this checks for an automated quality array from the clustering algorithm
                     aq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*qual*.npy"))]
                     #looks for scrubbed quality and loads if possible
@@ -99,7 +99,7 @@ class neuron(object):
                     #since there are multiple files that have "templates" at the end this pulls out only the ones we want
                     templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
                     #checks for amplitude files
-                    amplitude_files = np.sort(glob.glob("*amplitudes*.npy"))
+                    #amplitude_files = np.sort(glob.glob("*amplitudes*.npy"))
                     #this checks for an automated quality array from the clustering algorithm
                     aq = np.sort(glob.glob("*qual*.npy"))
                     #looks for scrubbed quality and loads if possible
@@ -160,8 +160,8 @@ class neuron(object):
                 spk_idx = np.where(curr_clust == clust_idx)[0]
                 #loads all times at those indicies
                 spiketimes = curr_spikes[spk_idx]/fs
-                amplitudes = [int(tempamps[i]) for i in spk_idx]
-                self.amplitudes =  np.asarray(amplitudes)
+                #amplitudes = [int(tempamps[i]) for i in spk_idx]
+                #self.amplitudes =  np.asarray(amplitudes)
                 #if there are peak channels this loads them into the instance variables
                 #eventually this will be determined by day so that's why it's loaded here
                 if has_peak_files:
