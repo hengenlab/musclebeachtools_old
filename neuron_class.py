@@ -221,7 +221,7 @@ class neuron(object):
                     print("Quality set at: ", self.quality)
             else:
                 if has_aqual:
-                    self.quality = self.auto_qual_array[int(cell_idx)]
+                    self.quality = self.auto_qual_array[clust_idx]
                     print("\nQuality rating (automated): ", self.quality)
                 else:
                     print("\nNo automated or scrubbed quality rating, check the quality to set the quality manually")
