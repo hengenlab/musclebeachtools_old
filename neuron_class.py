@@ -138,7 +138,6 @@ class neuron(object):
                     if has_aqual:
                         # self.auto_qual_array = np.load(aq[0])[peak_ch >= 0]
                         self.auto_qual_array = np.load(aq[0])
-                        self.auto_qual_array = self.auto_qual_array[self.auto_qual_array!=0]
                     if has_squal:
                         self.scrubbed_qual_array = np.load(sq[0])
                         self._scqu_file = sq[0]
@@ -213,7 +212,7 @@ class neuron(object):
                     print("First unscrubbed cell index: ", last_idx)
                 if np.isnan(self.scrubbed_qual_array[cell_idx]):
                     if has_aqual:
-                        self.quality = self.auto_qual_array[cell_idx]
+                        self.quality = self.auto_qual_array[clust_idx]
                         print("\nScrubbed: NO")
                         print("Quality rating (automated): ", self.quality)
                 else:
