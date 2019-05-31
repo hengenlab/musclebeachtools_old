@@ -217,7 +217,7 @@ class neuron(object):
                     print("First unscrubbed cell index: ", last_idx)
                 if np.isnan(self.scrubbed_qual_array[cell_idx]):
                     if has_aqual:
-                        self.quality = self.auto_qual_array[clust_idx]
+                        self.quality = self.auto_qual_array[int(clust_idx)]
                         print("\nScrubbed: NO")
                         print("Quality rating (automated): ", self.quality)
                 else:
@@ -226,7 +226,7 @@ class neuron(object):
                     print("Quality set at: ", self.quality)
             else:
                 if has_aqual:
-                    self.quality = self.auto_qual_array[clust_idx]
+                    self.quality = self.auto_qual_array[int(clust_idx)]
                     print("\nQuality rating (automated): ", self.quality)
                 else:
                     print("\nNo automated or scrubbed quality rating, check the quality to set the quality manually")
