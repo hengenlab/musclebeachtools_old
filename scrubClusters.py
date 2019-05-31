@@ -25,6 +25,7 @@ def scrubClusters(datafile, start_cell=0):
 
 
 	for i in range(start_cell, num_cells):
+		file_list=makeFileList(datafile)
 		cell=mb.neuron(datafile=datafile, cell_idx=i, file_list=file_list)
 		cell.checkqual()
 
