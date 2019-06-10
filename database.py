@@ -71,7 +71,7 @@ def createimplanttable(cursor,db):
     May be called after the deltable function. '''
     # ---------------------------- create table for implant/region info ------------
     #cursor = db.cursor()
-    cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), sex VARCHAR(255), region VARCHAR(255), strain VARCHAR(255), genotype VARCHAR(255), daqsys VARCHAR(255), nchan TINYINT, changroup TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 SMALLINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), electrode VARCHAR(255), headstage VARCHAR(255) ) "     )
+    cursor.execute( "CREATE TABLE implant_db ( animal_id VARCHAR(255), experiment_id VARCHAR(255), species VARCHAR(255), sex VARCHAR(255), region VARCHAR(255), strain VARCHAR(255), genotype VARCHAR(255), daqsys VARCHAR(255), nchan SMALLINT, changroup TINYINT, chan_range VARCHAR(255), n_implant_sites TINYINT, implant_date VARCHAR(255), expt_start VARCHAR(255), expt_end VARCHAR(255), age_t0 SMALLINT, surgeon VARCHAR(10), video_binary TINYINT, light_binary TINYINT, sound_binary TINYINT, sleep_state_binary TINYINT, implant_coordinates VARCHAR(255), electrode VARCHAR(255), headstage VARCHAR(255) ) "     )
 
     cursor.execute("ALTER TABLE implant_db ADD COLUMN implant_id INTEGER NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST")
     print('Created table "implant_db" in the {} database'.format(db.db))
@@ -80,7 +80,7 @@ def createclusterstable(cursor,db):
     '''Create the clusters table. This should NOT be used except during development.
     May be called after the deltable function. '''
 
-    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t SMALLINT, half_width SMALLINT, slope_falling MEDIUMINT, mean_amplitude SMALLINT, fr SMALLINT, cluster_number TINYINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, tracklinks VARCHAR(255), block_label VARCHAR(255), folder_location VARCHAR(255) )" )
+    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t SMALLINT, half_width SMALLINT, slope_falling MEDIUMINT, mean_amplitude SMALLINT, fr SMALLINT, cluster_number SMALLINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, tracklinks VARCHAR(255), block_label VARCHAR(255), folder_location VARCHAR(255) )" )
 
     # add a column for cluster barcodes and make it the primary key and make it first.
     cursor.execute("ALTER TABLE clusters ADD COLUMN barcode DOUBLE NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST")
@@ -355,6 +355,7 @@ def submit_implant(g,cursor,db):
     cols = ', '.join(map(__escape_name, targets))  # assumes the keys are *valid column names*.
     placeholders = ', '.join(['%({})s'.format(name) for name in targets])
     # submit to the implants_db table.
+    print(g.nchan)
     query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
 
     cursor.execute(query, target_val_pair)
@@ -586,7 +587,7 @@ def searchclusters():
 
     query = "  SELECT implant_db.animal_id FROM clusters JOIN implant_db ON clusters.implant_id = implant_db.implant_id WHERE clusters.barcode IN ({}) ".format(res2)
 
-        query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
+    query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
 # # "where" search:
     # query = "SELECT barcode FROM clusters WHERE mean_amplitude > 10 AND clusters.implant_id = implant_db.implant_id )  "
     # records = cursor.fetchall()
@@ -604,7 +605,7 @@ def searchclusters():
     # retreive one column only
     query = "SELECT quality FROM clusters"
     # retreive all columns
-    query = "SELECT * FROM clusters"
+    query = "SELECT * FROM implant_db"
     #retrieve some columns
     query = "SELECT quality, mean_amplitude FROM clusters"
     # show the column np_samples
