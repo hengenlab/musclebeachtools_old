@@ -7,6 +7,7 @@ import time
 import seaborn as sns
 import matplotlib
 import glob
+import math
 import neuraltoolkit.ntk_ecube as ntk
 import datetime as dt
 #matplotlib.use('TkAgg')
@@ -131,9 +132,9 @@ class neuron(object):
                         w=np.load(templates_wf[0])
                     elif has_twf:
                         w=np.load(wavefiles[0])
-                    if len(amplitude_files)>0:
-                        # pdb.set_trace()
-                        tempamps = np.load(amplitude_files[0])
+                    # if len(amplitude_files)>0:
+                    #     # pdb.set_trace()
+                    #     tempamps = np.load(amplitude_files[0])
 
                     if has_aqual:
                         # self.auto_qual_array = np.load(aq[0])[peak_ch >= 0]
@@ -192,9 +193,13 @@ class neuron(object):
             #sets on an off time based on first and last numbers in the spike time array
             self.onTime = np.array([self.time[0]])
             self.offTime = np.array([self.time[-1]])
-            startTimeIndex = spikefiles[0].index("times_") + 6
-            startTimeIndexEnd = spikefiles[0].index("-timee_")
-            clocktimeSIdx = spikefiles[0].index("_2019-") # this was hardcoded to 2018. changed to 2019. need to make flexible. KBH 5/11/19
+            startTimeIndex = spikefiles[0].find("times_") + 6
+            if startTimeIndex==-1:
+                startTimeIndex = spikefiles[0].find("fs") + 2
+            startTimeIndexEnd = spikefiles[0].find("-timee_")
+            if startTimeIndexEnd ==-1:
+                startTimeIndexEnd = spikefiles[0].find("-fs")
+            clocktimeSIdx = spikefiles[0].find("_2019-") # this was hardcoded to 2018. changed to 2019. need to make flexible. KBH 5/11/19
             self.ecube_start_time = int(spikefiles[0][startTimeIndex : startTimeIndexEnd])
             self.clocktime_start_time = spikefiles[0][clocktimeSIdx: clocktimeSIdx+20]
 
@@ -212,7 +217,7 @@ class neuron(object):
                     print("First unscrubbed cell index: ", last_idx)
                 if np.isnan(self.scrubbed_qual_array[cell_idx]):
                     if has_aqual:
-                        self.quality = self.auto_qual_array[clust_idx]
+                        self.quality = self.auto_qual_array[int(clust_idx)]
                         print("\nScrubbed: NO")
                         print("Quality rating (automated): ", self.quality)
                 else:
@@ -221,12 +226,28 @@ class neuron(object):
                     print("Quality set at: ", self.quality)
             else:
                 if has_aqual:
-                    self.quality = self.auto_qual_array[clust_idx]
+                    self.quality = self.auto_qual_array[int(clust_idx)]
                     print("\nQuality rating (automated): ", self.quality)
                 else:
                     print("\nNo automated or scrubbed quality rating, check the quality to set the quality manually")
                     self.quality = 0
 
+            # #SLEEP-WAKE
+            # fname = '{}*SleepStates*.npy'.format(rawdatadir)
+            # sleepFiles = glob.glob(fname)
+            # sleepFiles = np.sort(sleepFiles)
+            # sleep_states = np.zeros(np.shape(self.time))
+            # for i, t in enumerate(self.time):
+            #     hr = math.ceil(t/3600)
+            #     if hr > len(sleepFiles):
+            #         print("Sleep states recorded through hour {}".format(hr-1))
+            #         break
+            #     sleeps = np.load(sleepFiles[hr-1])
+            #     for idx, state in enumerate(sleeps):
+            #         if t > (idx*4)+(900*(hr-1)) and t<(idx+1)*4 + (900*(hr-1)):
+            #             sleep_states[i] = state
+            #             break   
+            # self.sleep_states = sleep_states            
 
         #Brandeis data
         else:
@@ -289,6 +310,7 @@ class neuron(object):
             ms_per_sample       = seconds_per_sample*1e3
             self.neg_pos_time   = np_samples * ms_per_sample
         self.datatype = datatype
+        self.clust_idx = clust_idx
 
 
     def spikeTimeToClockTime(self):
