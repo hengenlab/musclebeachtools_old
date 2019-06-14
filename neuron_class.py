@@ -12,15 +12,7 @@ import math
 import datetime as dt
 #matplotlib.use('TkAgg')
 import pdb
-# rawdatadir=False
-# datatype='npy'
-# cell_idx = 5
-# start_day=0
-# end_day=1
-# silicon=False
-# probenumber=1
-# fs=25000
-# file_list=[]
+
 class neuron(object):
     """
            :param datafile: directory where the clustering output is
