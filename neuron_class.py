@@ -8,246 +8,261 @@ import seaborn as sns
 import matplotlib
 import glob
 import math
-import neuraltoolkit.ntk_ecube as ntk
+# import neuraltoolkit.ntk_ecube as ntk
 import datetime as dt
 #matplotlib.use('TkAgg')
 import pdb
-
+# rawdatadir=False
+# datatype='npy'
+# cell_idx = 5
+# start_day=0
+# end_day=1
+# silicon=False
+# probenumber=1
+# fs=25000
+# file_list=[]
 class neuron(object):
-    '''Create instances (objects) of the class neuron '''
-    def __init__(self, datafile, datatype='npy', cell_idx = 0, start_day=0, end_day=1, silicon=False,probenumber=1,fs=25000,file_list=[]):
+    """
+           :param datafile: directory where the clustering output is
+           :param rawdatadir: directory where the raw data and the sleep states are stored
+           :param datatype: 'npy' for washu 'hp5' for brandeis
+           :param cell_idx: cell number to look at (different from the cluster index)
+           :param start_day: essentially what file number to begin at
+           :param clust_idx: this is the cluster number found in the unique clusters array, if you're building a neuron from database information then you will know this number and not the cell_idx
+           :param end_day: what file number to end at
+           :param silicon: was the recording silicon or not    MIGHT WANT TO MAKE THIS 'MULTI-PROBE' BECAUSE A LOT OF THINGS HAVE MORE THAN ONE CHG NOW
+           :param probenumber: what probe to look at for silicon
+           :param fs:
+           :param file_list:
+    """
+    def __init__(self, datafile, rawdatadir=False, datatype='npy', cell_idx = 0, start_block=0, clust_idx = False, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[]):
         if datatype == 'npy':
 
             print('You are using WashU data')
-            # fs = 25000
-            print('Sampling rate {:10.2f}'.format(fs))
-            print('working on neuron '+str(cell_idx)+'\n')
+            if not clust_idx:
+                print('working on cell index '+str(cell_idx)+'\n')
+            else:
+                print('working on cluster number '+str(clust_idx)+'\n')
+
 
             # going to folder that contains processed data if it exists
-            try:
-                os.chdir(datafile)
-            except FileNotFoundError:
-                print("*** Data File does not exist *** check the path")
-                #return
+            if datafile not in os.getcwd():
+                try:
+                    os.chdir(os.path.expanduser('~'))
+                    os.chdir(os.path.realpath(datafile))
+                except FileNotFoundError:
+                    print("*** Data File does not exist *** check the path")
+                    return
 
+            files_present = []
             if len(file_list)>0:
-                print("using file list")
-                has_peak_files  = not len(file_list[2]) == 0
-                has_twf         = not len(file_list[3]) == 0
-                has_aqual       = not len(file_list[5]) == 0
-                has_squal       = not len(file_list[6]) == 0
-                #has_amp= not len(file_list[4])==0
-
-                curr_clust  = file_list[0]
+                dat = file_list[9]
+                files_present = file_list[8]
+                print('using file list')
+                curr_clust = file_list[0]
                 curr_spikes = file_list[1]
-                if(has_peak_files):
+                if dat['max_channel']:
                     peak_ch = file_list[2]
-                    if np.size(np.where(peak_ch == -1)[0]) == 0:
-                        print('You are using older data, changing indexing')
-                        peak_ch     = peak_ch-1
-                        curr_clust  = curr_clust[0]-1
-                        curr_spikes = curr_spikes[0]-1
-                if(has_twf):
-                    w = file_list[3]
-                #if(has_amp):
-                #    self.amplitudes= file_list[4]
-                if(has_aqual):
-                    self.auto_qual_array=file_list[5]
-                if(has_squal):
-                    self.scrubbed_qual_array=file_list[6]
-                    self._scqu_file=file_list[7]
-                length = np.zeros(end_day)
-                spikefiles = np.sort(glob.glob("*spike_times*.npy"))
+                templates = file_list[3]
+                if dat['qual']:
+                    qual_array = file_list[5]
+                if dat['scrubbed']:
+                    scrubbed_qual_array = file_list[6]
+                if dat['amplitudes']:
+                    amps = file_list[4]
+                block_label = file_list[10]
 
             else:
-
-               #SORTS DATA FILES
-                if(silicon):
-                    #ch  = input("What probe would you like to look at?")
+                # SORTS DATA FILES
+                if multi_probe:
                     ch = probenumber
-                    f   = "*chg_"+str(ch)+"*"
-                    channelFiles = np.sort(glob.glob(f))
-                    #sorts spikes and clusters
-                    spikefiles  = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_times*.npy"))]
-                    #print("spike_files: ", spikefiles)
-                    clustfiles  = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*spike_clusters*.npy"))]
-                    #sorts any peak channel files found in folder
-                    peakfiles   = [channelFiles[i] for i in range(len(channelFiles)) if (channelFiles[i] in np.sort(glob.glob("*peakchannel*.npy")) or channelFiles[i] in np.sort(glob.glob("*max_channel*.npy")))]
-                    #sorts wavefiles in two forms, named "waveform" or "templates"
-                    wavefiles = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*waveform*.npy"))]
-                    templates_all = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*templates*.npy"))]
-                    #since there are multiple files that have "templates" at the end this pulls out only the ones we want
-                    templates_wf = [fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
-                    #checks for amplitude files
-                    #amplitude_files = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*amplitudes*.npy"))]
-                    #this checks for an automated quality array from the clustering algorithm
-                    aq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*qual*.npy"))]
-                    #looks for scrubbed quality and loads if possible
-                    sq = [channelFiles[i] for i in range(len(channelFiles)) if channelFiles[i] in np.sort(glob.glob("*scrubbed*.npy"))]
-                #pulls data if not silicon
+                    f   = "*chg_"+str(ch)+"*.npy"
+                    files_full = np.sort(glob.glob(f))
                 else:
-                    #sorts spikes and clusters
-                    spikefiles = np.sort(glob.glob("*spike_times*.npy"))
-                    clustfiles = np.sort(glob.glob("*spike_clusters*.npy"))
-                    #sorts any peak channel files found in folder
-                    peakfiles = np.sort(glob.glob("*max_channel*.npy"))
-                    if len(peakfiles)==0:
-                        peakfiles=np.sort(glob.glob("*peakchannel*.npy"))
-                    #peakfiles.extend(np.sort(glob.glob("*max_channel*.npy")))
-                    #sorts wavefiles in two forms, named "waveform" or "templates"
-                    wavefiles = np.sort(glob.glob("*waveform*.npy"))
-                    templates_all=np.sort(glob.glob("*template*.npy"))
-                    #since there are multiple files that have "templates" at the end this pulls out only the ones we want
-                    templates_wf=[fn for fn in templates_all if fn not in glob.glob("*spike*.npy") and fn not in glob.glob("*similar*.npy") and fn not in glob.glob("*number_of_*.npy") and fn not in glob.glob("*templates_in_clust.npy")]
-                    #checks for amplitude files
-                    #amplitude_files = np.sort(glob.glob("*amplitudes*.npy"))
-                    #this checks for an automated quality array from the clustering algorithm
-                    aq = np.sort(glob.glob("*qual*.npy"))
-                    #looks for scrubbed quality and loads if possible
-                    sq = np.sort(glob.glob("*scrubbed*.npy"))
+                    files_full = glob.glob('*.npy')
+                idx = files_full[0].find('chg_')
+                baseName = files_full[0][:idx+6]
+                possible_files = ['amplitudes', 'waveform','qual', 'spline', 'scrubbed']
+                dat = {}
+                for f in possible_files:
+                    g = glob.glob('*{}*'.format(f))
+                    dat[f] = len(g) > 0
+                   
+                spikefiles = [f for f in files_full if f in glob.glob('*spike_times*')]
+                clustfiles = [f for f in files_full if f in glob.glob('*spike_clusters*')]
+                peakfiles = [f for f in files_full if f in glob.glob('*peak*') or f in glob.glob('*max_channel*')]
+                templatefiles = [f for f in files_full if f in glob.glob('*waveform.npy')]
+                qual = [f for f in files_full if f in glob.glob('*qual*') if f not in glob.glob('*scrubbed*')]
+                ampfiles = [f for f in files_full if f in glob.glob('*amplitudes*')]
+                splinefiles = [f for f in files_full if f in glob.glob('*spline*')]
 
+                block_label = spikefiles[0][:spikefiles[0].find('spike')]
 
-                has_peak_files = not len(peakfiles)==0
-                has_twf = not (len(wavefiles)==0 and len(templates_wf)==0)
-                has_aqual = not len(aq)==0
-                has_squal = not len(sq)==0
+                dat['max_channel'] = len(peakfiles) > 0
+                length = np.zeros(end_block)
 
-                #eventually length will be calculated differently but for now length is just 0
-                #see original neuron_class for length calculation with keys
-                length = np.zeros(end_day)
-
-                #LOADS DATA
+                # LOADS DATA
+                # still need to deal with if a file doesnt exist
                 try:
                     print("Loading files...")
-                    curr_clust = [np.load(clustfiles[i]) for i in range(start_day, end_day)]
-                    curr_spikes = [np.load(spikefiles[i])+length[i] for i in range(start_day, end_day)]
-                    if has_peak_files:
-                        peak_ch = np.concatenate([np.load(peakfiles[i])for i in range(start_day, end_day)])
-                        if np.size(np.where(peak_ch == -1)[0]) == 0:
-                            print('You are using older data, changing indexing')
-                            peak_ch = peak_ch-1
-                            curr_clust = curr_clust[0]-1
-                            curr_spikes = curr_spikes[0]-1
-                    if has_twf and len(wavefiles)==0:
-                        w=np.load(templates_wf[0])
-                    elif has_twf:
-                        w=np.load(wavefiles[0])
-                    # if len(amplitude_files)>0:
-                    #     # pdb.set_trace()
-                    #     tempamps = np.load(amplitude_files[0])
 
-                    if has_aqual:
-                        # self.auto_qual_array = np.load(aq[0])[peak_ch >= 0]
-                        self.auto_qual_array = np.load(aq[0])
-                    if has_squal:
-                        self.scrubbed_qual_array = np.load(sq[0])
-                        self._scqu_file = sq[0]
+                    #yea the length here is still wrong, figure out where to deal with that
+                    curr_clust = [np.load(clustfiles[i]) for i in range(start_block, end_block)][0]
+                    curr_spikes = [np.load(spikefiles[i]) + length[i] for i in range(start_block, end_block)][0]
+                    if dat['max_channel']:
+                        peak_ch = [np.load(peakfiles[i]) for i in range(start_block, end_block)][0]
+                        files_present.append('max/peak channels')
+                    if dat['spline']:
+                        templates = [np.load(splinefiles[i]) for i in range(start_block, end_block)][0]
+                        files_present.append('spine waveform *yea fix this theres definitly a better name for this')
+                    elif dat['waveform']:
+                        if len(glob.glob('*mean_waveform.npy')) > 0:
+                            templates = [np.load(glob.glob('*mean_waveform.npy')[i]) for i in range(start_block, end_block)][0]
+                            files_present.append('mean waveform')
+                        else:
+                            templates = [np.load(templatefiles[i]) for i in range(start_block, end_block)][0]
+                            files_present.append('template waveform')
+                    if dat['qual']:
+                        qual_array = [np.load(qual[i]) for i in range (start_block, end_block)][0]
+                        files_present.append('automated cluster quality')
+                    if dat['scrubbed']:
+                        scrubbed_qual_array = np.load('scrubbed_quality.npy')
+                        files_present.append('scrubbed cluster quality')
+                    if dat['amplitudes']:
+                        amps = [np.load(ampfiles[i]) for i in range(start_block, end_block)][0]
+                        files_present.append('amplitudes')
                 except IndexError:
                     print("files do not exist for that day range")
 
-            if end_day-start_day > 1:
+            if end_block-start_block > 1:
                 print("this cannot be done yet")
-                #can't do this yet, see past code for an idea of how it will be done
+                # can't do this yet, see past code for an idea of how it will be done
+                # this is gonna be where tracking comes in
+
+                # go up one directory, find the time of the overlap
+                # convert the overlap to seconds, cut that part out of the spike array
+                # add the overlap time to the spikes in the rest of the spike times array
+
+                #spikes are separated into lists, so that should be easy, concatenate at the end
+
             else:
-                if np.shape(curr_clust)[0] == 1:
-                    curr_clust = curr_clust[0]
-                if np.shape(curr_spikes)[0] == 1:
-                    curr_spikes = curr_spikes[0]
-                #pulls out the unique cluster numbers
+                # do peak stuff
+                if dat['max_channel']:
+                    if np.size(np.where(peak_ch == -1)[0]) == 0:
+                        print('You are using older data, changing indexing')
+                        peak_ch = peak_ch - 1
+                        curr_clust = curr_clust - 1
+                        curr_spikes = curr_spikes - 1
+
+                # do spike stuff
                 self.unique_clusters = np.unique(curr_clust)
-                clust_idx = self.unique_clusters[int(cell_idx)]
+                if not clust_idx:
+                    clust_idx = self.unique_clusters[int(cell_idx)]
+                else:
+                    clust_idx=int(clust_idx)
+                    cell_idx = np.where(self.unique_clusters == clust_idx)[0]
 
-                #pulls out all indices of that cluster spiking based on cluster index and spike clusters
+                # load the file with the tracking keys
+                # index into the start_block at the cell_idx number (check this, might be cluster index) and find the new cluster number
+
+
                 spk_idx = np.where(curr_clust == clust_idx)[0]
-                #loads all times at those indicies
                 spiketimes = curr_spikes[spk_idx]/fs
-                #amplitudes = [int(tempamps[i]) for i in spk_idx]
-                #self.amplitudes =  np.asarray(amplitudes)
-                #if there are peak channels this loads them into the instance variables
-                #eventually this will be determined by day so that's why it's loaded here
-                if has_peak_files:
-                    peak_ch_no0 = np.delete(peak_ch,np.where(peak_ch == -1)[0],0)
-                    self.peak_chans = peak_ch_no0[int(cell_idx)]
+                self.time = np.concatenate(spiketimes)
+                if dat['max_channel']:
+                    self.peak_channel = peak_ch[clust_idx]
+                # do template stuff
+                if dat['waveform']:
+                    self.waveform_template = templates[clust_idx]
+                    bottom = np.argmin(self.waveform_template)
+                    top = np.argmax(self.waveform_template[bottom:]) + bottom
+                    np_samples = top - bottom
+                    seconds_per_sample = 1 / fs
+                    ms_per_sample = seconds_per_sample * 1e3
+                    self.neg_pos_time = np_samples * ms_per_sample
+                    self.cell_idx = cell_idx
+                    if self.neg_pos_time >= 0.4:
+                        self.cell_type = 'RSU'
+                    if self.neg_pos_time < 0.4:
+                        self.cell_type = 'FS'
 
-            if has_twf:
-                w_real = np.delete(w,np.where(peak_ch == -1)[0],0)
-                self.wf_temp = w_real[cell_idx]
-                bottom      = np.argmin(self.wf_temp)
-                top         = np.argmax(self.wf_temp[bottom:]) + bottom
-                np_samples  = top - bottom
+                # do quality stuff
+                if dat['qual']:
+                    if dat['scrubbed']:
+                        self.scrubbed_qual_array = scrubbed_qual_array
+                        last_idx = None
+                        for n in range(len(self.scrubbed_qual_array)):
+                            if np.isnan(self.scrubbed_qual_array[n]):
+                                last_idx = n
+                                break
+                        if last_idx is not None:
+                            print("First unscrubbed cell index: ", last_idx)
+                        if np.isnan(self.scrubbed_qual_array[cell_idx]):
+                            self.quality_array = qual_array
+                            self.quality = qual_array[clust_idx]
+                        else:
+                            self.scrubbed_quality = scrubbed_qual_array[cell_idx]
+                    else:
+                        self.quality_array = qual_array
+                        self.quality = qual_array[clust_idx]
+                else:
+                    print("There is no quality rating for any of these cells. Run 'checkqual()' and change the save_update flag to True if you'd like to start a quality array")
+                # do any other stuff that pops up
+                if dat['amplitudes']:
+                    self.amplitudes = amps[spk_idx]
 
-                seconds_per_sample  = 1/fs
-                ms_per_sample       = seconds_per_sample*1e3
-                self.neg_pos_time   = np_samples * ms_per_sample
-                self.cell_idx = cell_idx
-                if self.neg_pos_time >=0.4:
-                    self.cell_type  = 'RSU'
-                if self.neg_pos_time <0.4:
-                    self.cell_type = 'FS'
-
-            self._has_twf = has_twf
-            self._has_squal = has_squal
-
-            #sets the time instance variables to all the spike times
-            self.time = np.concatenate(spiketimes)
-            #sets on an off time based on first and last numbers in the spike time array
+            self._dat = dat
+            # SLEEP-WAKE
+            if rawdatadir and len(file_list) == 0:
+                print('here')
+                print(rawdatadir)
+                fname = '{}*SleepStates*.npy'.format(rawdatadir)
+                files = glob.glob(fname)
+                numHrs = len(files)
+                baseName = files[0][:files[0].find('SleepStates')+11]
+                sleepFiles=[]
+                for i in range(numHrs):
+                    file = baseName+str(i+1)+'.npy'
+                    sleepFiles.append(file)
+                sleep_states = np.zeros((2,0))
+                for idx, f in enumerate(sleepFiles):
+                    sleeps = np.load(f)
+                    t = np.where(np.diff(sleeps)!=0)[0]
+                    s0 = [sleeps[i-1] for i in t]
+                    t = t+(900*idx)
+                    t = t*4
+                    s = np.array(s0)
+                    t = np.stack((t,s))
+                    sleep_states = np.concatenate((sleep_states,t), axis =1)
+                    last = idx
+                self.behavior = sleep_states
+                files_present.append('SLEEP STATES through hour {}'.format(last+1))
+            elif rawdatadir:
+                self.behavior = file_list[8]
+            #TIME STUFF
             self.onTime = np.array([self.time[0]])
             self.offTime = np.array([self.time[-1]])
-            startTimeIndex = spikefiles[0].find("times_") + 6
-            if startTimeIndex==-1:
-                startTimeIndex = spikefiles[0].find("fs") + 2
-            startTimeIndexEnd = spikefiles[0].find("-timee_")
-            if startTimeIndexEnd ==-1:
-                startTimeIndexEnd = spikefiles[0].find("-fs")
-            clocktimeSIdx = spikefiles[0].find("_2019-") # this was hardcoded to 2018. changed to 2019. need to make flexible. KBH 5/11/19
-            self.ecube_start_time = int(spikefiles[0][startTimeIndex : startTimeIndexEnd])
-            self.clocktime_start_time = spikefiles[0][clocktimeSIdx: clocktimeSIdx+20]
+            startTimeIndex = block_label.find("times_") + 6
+            if startTimeIndex == -1:
+                startTimeIndex = block_label.find("fs") + 2
+            startTimeIndexEnd = block_label.find("-timee_")
+            if startTimeIndexEnd == -1:
+                startTimeIndexEnd = block_label.find("-fs")
+            clocktimeSIdx = block_label.find("int16_") + 6
+            clocktimeEIdx = block_label.find('-P')-1
+            self.ecube_start_time = int(block_label[startTimeIndex: startTimeIndexEnd])
+            self.clocktime_start_time = block_label[clocktimeSIdx: clocktimeEIdx]
 
-            print("\nData set information:\nPeak Channels: {}\nWaveform Template: {}\nNumber of clusters: {}".format(has_peak_files, has_twf, len(self.unique_clusters)))
+            self.directory = datafile
 
-
-            #QUALITY
-            if has_squal:
-                last_idx=None
-                for n in range(len(self.scrubbed_qual_array)):
-                    if np.isnan(self.scrubbed_qual_array[n]):
-                        last_idx=n
-                        break
-                if last_idx != None:
-                    print("First unscrubbed cell index: ", last_idx)
-                if np.isnan(self.scrubbed_qual_array[cell_idx]):
-                    if has_aqual:
-                        self.quality = self.auto_qual_array[int(clust_idx)]
-                        print("\nScrubbed: NO")
-                        print("Quality rating (automated): ", self.quality)
-                else:
-                    self.quality = self.scrubbed_qual_array[int(cell_idx)]
-                    print('\nScrubbed: YES')
-                    print("Quality set at: ", self.quality)
-            else:
-                if has_aqual:
-                    self.quality = self.auto_qual_array[int(clust_idx)]
-                    print("\nQuality rating (automated): ", self.quality)
-                else:
-                    print("\nNo automated or scrubbed quality rating, check the quality to set the quality manually")
-                    self.quality = 0
-
-            # #SLEEP-WAKE
-            # fname = '{}*SleepStates*.npy'.format(rawdatadir)
-            # sleepFiles = glob.glob(fname)
-            # sleepFiles = np.sort(sleepFiles)
-            # sleep_states = np.zeros(np.shape(self.time))
-            # for i, t in enumerate(self.time):
-            #     hr = math.ceil(t/3600)
-            #     if hr > len(sleepFiles):
-            #         print("Sleep states recorded through hour {}".format(hr-1))
-            #         break
-            #     sleeps = np.load(sleepFiles[hr-1])
-            #     for idx, state in enumerate(sleeps):
-            #         if t > (idx*4)+(900*(hr-1)) and t<(idx+1)*4 + (900*(hr-1)):
-            #             sleep_states[i] = state
-            #             break   
-            # self.sleep_states = sleep_states            
+            if len(file_list) == 0:
+                print("Data set information: \nThis clustering output contains:")
+                s = '\t'+files_present[0]
+                for f in files_present[-1]:
+                    s += '\n\t{}'.format(f)
+                print(s+'\nRecording started at: {} \nNumber of clusters: {}'.format(self.clocktime_start_time, len(self.unique_clusters)))
+                if dat['qual']:
+                    print('Cell quality: '.format(self.quality))
 
         #Brandeis data
         else:
@@ -315,12 +330,14 @@ class neuron(object):
 
     def spikeTimeToClockTime(self):
         '''creates a new instance variable that consists of the spike times converted to clock times'''
-        yr = int(self.clocktime_start_time[1:5])
-        month = int(self.clocktime_start_time[6:8])
-        day = int(self.clocktime_start_time[9:11])
-        hr = int(self.clocktime_start_time[12:14])
-        minu = int(self.clocktime_start_time[15:17])
-        sec = int(self.clocktime_start_time[18:20])
+        uScore = [i for i, a in enumerate(self.clocktime_start_time) if a=='_']
+        dashes = [i for i, a in enumerate(self.clocktime_start_time) if a=='-']
+        yr = int(self.clocktime_start_time[0:4])
+        month = int(self.clocktime_start_time[dashes[0]+1:dashes[1]])
+        day = int(self.clocktime_start_time[dashes[1]+1:uScore[0]])
+        hr = int(self.clocktime_start_time[uScore[0]+1:dashes[2]])
+        minu = int(self.clocktime_start_time[dashes[2]+1:dashes[3]])
+        sec = int(self.clocktime_start_time[dashes[3]+1:])
 
         t = dt.datetime(yr,month,day,hr,minu,sec,00)
         self.clock_spk_times = []
@@ -609,7 +626,7 @@ class neuron(object):
             raise TypeError('ERROR: Second argument to crosscorr should be an instance of ''neuron'' class.')
 
 
-    def checkqual(self, save_update=True):
+    def checkqual(self, save_update=False):
 
         #binsz set as elapsed time/100
         elapsed = self.time[-1] - self.time[0]
@@ -680,7 +697,7 @@ class neuron(object):
 
         numGraphs=2
 
-        if self._has_twf:
+        if self._dat['waveform']:
             numGraphs = 3
 
 
@@ -701,7 +718,7 @@ class neuron(object):
 
 
         # PLOT THE MEAN TRACE (template waveform):
-        if self._has_twf:
+        if self._dat['waveform']:
             ax1.text(0,.96, "Cell type: " + self.cell_type, transform=ax1.transAxes, color='black', fontsize='medium')
             sns.set(style="ticks")
             sns.despine()
@@ -709,7 +726,7 @@ class neuron(object):
             if self.datatype == 'hdf5':
                 ax2.plot(self.meantrace)
             else:
-                 ax2.plot(self.wf_temp)
+                 ax2.plot(self.waveform_template)
             ax2.set_ylabel('$Millivolts$')
         else:
             ax1.text(0,.96,"No waveform template found", transform=ax1.transAxes, color='red')
@@ -790,10 +807,10 @@ class neuron(object):
                     #always update quality if the save_update flag is true
                     self.quality=g
 
-                    if self._has_squal:
+                    if self._dat['scrubbed']:
                         #if there is already a scrubbed quality array - update the index of the cell
                         self.scrubbed_qual_array[self.cell_idx] = self.quality
-                        np.save(self._scqu_file, self.scrubbed_qual_array)
+                        np.save("scrubbed_quality.npy", self.scrubbed_qual_array)
                     else:
                         #make array if there isn't one already
 
