@@ -18,14 +18,14 @@ class neuron(object):
            :param datafile: directory where the clustering output is
            :param rawdatadir: directory where the raw data and the sleep states are stored
            :param datatype: 'npy' for washu 'hp5' for brandeis
-           :param cell_idx: cell number to look at (different from the cluster index)
+           :param cell_idx: cell number to look at in relation to the total number of clusters found (different from the cluster index)
            :param start_day: essentially what file number to begin at
-           :param clust_idx: this is the cluster number found in the unique clusters array, if you're building a neuron from database information then you will know this number and not the cell_idx
+           :param clust_idx: this is the cluster number found in the unique clusters array, if you're building a neuron from database information then you will know this number and not the cell_idx. This is a better identifier than cell_idx as it correspondes with Phy, use this when possible.
            :param end_day: what file number to end at
-           :param silicon: was the recording silicon or not    MIGHT WANT TO MAKE THIS 'MULTI-PROBE' BECAUSE A LOT OF THINGS HAVE MORE THAN ONE CHG NOW
-           :param probenumber: what probe to look at for silicon
-           :param fs:
-           :param file_list:
+           :param multi_probe: True if the recording was multiple probe
+           :param probenumber: what probe to look at for multi_probe recordings
+           :param fs: sampling rate
+           :param file_list: a list returned by the makeFileList() function. If loading more than one cell use this function to avoid loading the same file multiple times, makes the code much faster.
     """
     def __init__(self, datafile, rawdatadir=False, datatype='npy', cell_idx = 0, start_block=0, clust_idx = False, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[]):
         if datatype == 'npy':
