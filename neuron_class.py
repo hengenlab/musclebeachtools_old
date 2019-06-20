@@ -733,7 +733,10 @@ class neuron(object):
             if self.datatype == 'hdf5':
                 ax2.plot(self.meantrace)
             else:
-                 ax2.plot(self.waveform_template)
+                if self._dat['spline']:
+                    ax2.plot(self.mean_waveform)
+                else:
+                    ax2.plot(self.waveform_template)
             ax2.set_ylabel('$Millivolts$')
         else:
             ax1.text(0,.96,"No waveform template found", transform=ax1.transAxes, color='red')
