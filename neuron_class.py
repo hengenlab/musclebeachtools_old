@@ -13,21 +13,32 @@ import datetime as dt
 #matplotlib.use('TkAgg')
 import pdb
 
+
 class neuron(object):
     """
            :param datafile: directory where the clustering output is
            :param rawdatadir: directory where the raw data and the sleep states are stored
            :param datatype: 'npy' for washu 'hp5' for brandeis
            :param cell_idx: cell number to look at in relation to the total number of clusters found (different from the cluster index)
-           :param start_day: essentially what file number to begin at
+           :param start_block: essentially what file number to begin at
            :param clust_idx: this is the cluster number found in the unique clusters array, if you're building a neuron from database information then you will know this number and not the cell_idx. This is a better identifier than cell_idx as it correspondes with Phy, use this when possible.
-           :param end_day: what file number to end at
+           :param end_block: what file number to end at
            :param multi_probe: True if the recording was multiple probe
            :param probenumber: what probe to look at for multi_probe recordings
            :param fs: sampling rate
            :param file_list: a list returned by the makeFileList() function. If loading more than one cell use this function to avoid loading the same file multiple times, makes the code much faster.
     """
-    def __init__(self, datafile, rawdatadir=False, datatype='npy', cell_idx = 0, start_block=0, clust_idx = False, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[]):
+    def __init__(self, datadir, rawdatadir=False, datatype= 'npy', cell_idx = 0, start_block=0, clust_idx = False, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[]):
+
+        def pull_files(fileName, also = None, butNot = None):
+            if also is not None:
+                return [f for f in files_full if f in glob.glob(fileName) or f in glob.glob(also)]
+            if butNot is not None:
+                return [f for f in files_full if f in glob.glob(fileName) and f not in glob.glob(butNot)]
+            return [f for f in files_full if f in glob.glob(fileName)]
+        def load_files(files):
+            return [np.load(files[i]) for i in range(start_block, end_block)]
+
         if datatype == 'npy':
 
             print('You are using WashU data')
@@ -38,10 +49,10 @@ class neuron(object):
 
 
             # going to folder that contains processed data if it exists
-            if datafile not in os.getcwd():
+            if datadir not in os.getcwd():
                 try:
                     os.chdir(os.path.expanduser('~'))
-                    os.chdir(os.path.realpath(datafile))
+                    os.chdir(os.path.realpath(datadir))
                 except FileNotFoundError:
                     print("*** Data File does not exist *** check the path")
                     return
@@ -72,21 +83,19 @@ class neuron(object):
                     files_full = np.sort(glob.glob(f))
                 else:
                     files_full = glob.glob('*.npy')
-                idx = files_full[0].find('chg_')
-                baseName = files_full[0][:idx+6]
                 possible_files = ['amplitudes', 'waveform','qual', 'spline', 'scrubbed']
                 dat = {}
                 for f in possible_files:
                     g = glob.glob('*{}*'.format(f))
                     dat[f] = len(g) > 0
                    
-                spikefiles = [f for f in files_full if f in glob.glob('*spike_times*')]
-                clustfiles = [f for f in files_full if f in glob.glob('*spike_clusters*')]
-                peakfiles = [f for f in files_full if f in glob.glob('*peak*') or f in glob.glob('*max_channel*')]
-                templatefiles = [f for f in files_full if f in glob.glob('*waveform.npy')]
-                qual = [f for f in files_full if f in glob.glob('*qual*') if f not in glob.glob('*scrubbed*')]
-                ampfiles = [f for f in files_full if f in glob.glob('*amplitudes*')]
-                splinefiles = [f for f in files_full if f in glob.glob('*spline*')]
+                spikefiles = pull_files('*spike_times*')
+                clustfiles = pull_files('*spike_clusters*')
+                peakfiles = pull_files('*peak*', also = '*max_channel*')
+                templatefiles = pull_files('*waveform.npy')
+                qual = pull_files('*qual*', butNot = '*scrubbed*')
+                ampfiles = pull_files('*amplitudes*')
+                splinefiles = pull_files('*spline*')
 
                 block_label = spikefiles[0][:spikefiles[0].find('spike')]
 
@@ -99,29 +108,29 @@ class neuron(object):
                     print("Loading files...")
 
                     #yea the length here is still wrong, figure out where to deal with that
-                    curr_clust = [np.load(clustfiles[i]) for i in range(start_block, end_block)][0]
-                    curr_spikes = [np.load(spikefiles[i]) + length[i] for i in range(start_block, end_block)][0]
+                    curr_clust = load_files(clustfiles)[0]
+                    curr_spikes = load_files(spikefiles)[0]
                     if dat['max_channel']:
-                        peak_ch = [np.load(peakfiles[i]) for i in range(start_block, end_block)][0]
+                        peak_ch = load_files(peakfiles)[0]
                         files_present.append('max/peak channels')
                     if dat['spline']:
-                        templates = [np.load(splinefiles[i]) for i in range(start_block, end_block)][0]
+                        templates = load_files(splinefiles)[0]
                         files_present.append('spine waveform *yea fix this theres definitly a better name for this')
                     elif dat['waveform']:
                         if len(glob.glob('*mean_waveform.npy')) > 0:
-                            templates = [np.load(glob.glob('*mean_waveform.npy')[i]) for i in range(start_block, end_block)][0]
+                            templates = load_files(glob.glob('*mean_waveform.npy'))[0]
                             files_present.append('mean waveform')
                         else:
-                            templates = [np.load(templatefiles[i]) for i in range(start_block, end_block)][0]
+                            templates = load_files(templatefiles)[0]
                             files_present.append('template waveform')
                     if dat['qual']:
-                        qual_array = [np.load(qual[i]) for i in range (start_block, end_block)][0]
+                        qual_array = load_files(qual)[0]
                         files_present.append('automated cluster quality')
                     if dat['scrubbed']:
                         scrubbed_qual_array = np.load('scrubbed_quality.npy')
                         files_present.append('scrubbed cluster quality')
                     if dat['amplitudes']:
-                        amps = [np.load(ampfiles[i]) for i in range(start_block, end_block)][0]
+                        amps = load_files(ampfiles)[0]
                         files_present.append('amplitudes')
                 except IndexError:
                     print("files do not exist for that day range")
@@ -150,9 +159,13 @@ class neuron(object):
                 self.unique_clusters = np.unique(curr_clust)
                 if not clust_idx:
                     clust_idx = self.unique_clusters[int(cell_idx)]
+                    self.clust_idx = clust_idx
+                    self.cell_idx = cell_idx
                 else:
                     clust_idx=int(clust_idx)
                     cell_idx = np.where(self.unique_clusters == clust_idx)[0]
+                    self.clust_idx = clust_idx
+                    self.cell_idx = cell_idx
 
                 # load the file with the tracking keys
                 # index into the start_block at the cell_idx number (check this, might be cluster index) and find the new cluster number
@@ -165,18 +178,22 @@ class neuron(object):
                     self.peak_channel = peak_ch[clust_idx]
                 # do template stuff
                 if dat['waveform']:
-                    self.waveform_template = templates[clust_idx]
-                    bottom = np.argmin(self.waveform_template)
-                    top = np.argmax(self.waveform_template[bottom:]) + bottom
+                    temp = templates[clust_idx]
+                    bottom = np.argmin(temp)
+                    top = np.argmax(temp[bottom:]) + bottom
                     np_samples = top - bottom
                     seconds_per_sample = 1 / fs
                     ms_per_sample = seconds_per_sample * 1e3
                     self.neg_pos_time = np_samples * ms_per_sample
-                    self.cell_idx = cell_idx
+                    self.mean_amplitude = np.abs(np.amin(temp))
                     if self.neg_pos_time >= 0.4:
                         self.cell_type = 'RSU'
                     if self.neg_pos_time < 0.4:
                         self.cell_type = 'FS'
+                    if dat['spline']:
+                        self.mean_waveform = temp
+                    else:
+                        self.template_waveform = temp
 
                 # do quality stuff
                 if dat['qual']:
@@ -190,7 +207,7 @@ class neuron(object):
                         if last_idx is not None:
                             print("First unscrubbed cell index: ", last_idx)
                         if np.isnan(self.scrubbed_qual_array[cell_idx]):
-                            self.quality_array = qual_array
+                            self.quality_array = qual_array # this will error, fix this
                             self.quality = qual_array[clust_idx]
                         else:
                             self.scrubbed_quality = scrubbed_qual_array[cell_idx]
@@ -206,8 +223,6 @@ class neuron(object):
             self._dat = dat
             # SLEEP-WAKE
             if rawdatadir and len(file_list) == 0:
-                print('here')
-                print(rawdatadir)
                 fname = '{}*SleepStates*.npy'.format(rawdatadir)
                 files = glob.glob(fname)
                 numHrs = len(files)
@@ -245,7 +260,7 @@ class neuron(object):
             self.ecube_start_time = int(block_label[startTimeIndex: startTimeIndexEnd])
             self.clocktime_start_time = block_label[clocktimeSIdx: clocktimeEIdx]
 
-            self.directory = datafile
+            self.directory = datadir
 
             if len(file_list) == 0:
                 print("Data set information: \nThis clustering output contains:")
@@ -260,14 +275,14 @@ class neuron(object):
         else:
             print('You are using Brandeis data')
             print('Building neuron number {}'.format(cell_idx))
-            f               = h5py.File(datafile,'r')
+            f               = h5py.File(datadir, 'r')
             try:
                 self.animal     = np.array(f['neurons/neuron_'+str(cell_idx)+'/animal'][:], dtype=np.int8).tostring().decode("ascii")
             except:
                 print('Stuck at line 19 in neuron_class.py')
                 Tracer()()
 
-            self.HDF5_tag   = (datafile,cell_idx)
+            self.HDF5_tag   = (datadir, cell_idx)
             self.deprived   = f['neurons/neuron_'+str(cell_idx)+'/deprived'][0]
             self.channel    = np.int(f['neurons/neuron_'+str(cell_idx)+'/channel'][0])
             self.cont_stat  = f['neurons/neuron_'+str(cell_idx)+'/cont_stat'].value#bool(f['neurons/neuron_'+str(cell_idx)+'/cont_stat'][0])

@@ -15,7 +15,7 @@ def scrubClusters(datafile, rawdatadir, multi_probe, probeNumber):
 	num_cells = len(clusters)
 
 	sq = np.sort(glob.glob("*scrubbed*.npy"))
-
+	start_cell = 0
 	if len(sq) > 0:
 		print ("at least one of these cells has been scrubbed before")
 		sq_array = file_list[6]
