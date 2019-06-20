@@ -69,8 +69,6 @@ class neuron(object):
                 templates = file_list[3]
                 if dat['qual']:
                     qual_array = file_list[5]
-                if dat['scrubbed']:
-                    scrubbed_qual_array = file_list[6]
                 if dat['amplitudes']:
                     amps = file_list[4]
                 block_label = file_list[10]
@@ -190,12 +188,17 @@ class neuron(object):
                         self.cell_type = 'RSU'
                     if self.neg_pos_time < 0.4:
                         self.cell_type = 'FS'
-                    if dat['spline']:
-                        self.mean_waveform = temp
-                    else:
-                        self.template_waveform = temp
+                    self.waveform = temp
 
                 # do quality stuff
+                scrubbed_files = glob.glob('scrubbed_quality.npy')
+                if len(scrubbed_files) > 0:
+                    scrubbed_qual_array = np.load(scrubbed_files[0])
+                    dat['scrubbed'] = True
+                else:
+                    scrubbed_quality = np.full(np.shape(self.unique_clusters), np.NaN)
+                    np.save('scrubbed_quality.npy', scrubbed_quality)
+                    dat['scrubbed'] = False
                 if dat['qual']:
                     if dat['scrubbed']:
                         self.scrubbed_qual_array = scrubbed_qual_array
@@ -210,12 +213,13 @@ class neuron(object):
                             self.quality_array = qual_array # this will error, fix this
                             self.quality = qual_array[clust_idx]
                         else:
-                            self.scrubbed_quality = scrubbed_qual_array[cell_idx]
+                            self.quality = self.scrubbed_quality
                     else:
                         self.quality_array = qual_array
                         self.quality = qual_array[clust_idx]
                 else:
                     print("There is no quality rating for any of these cells. Run 'checkqual()' and change the save_update flag to True if you'd like to start a quality array")
+                    self.quality = 0
                 # do any other stuff that pops up
                 if dat['amplitudes']:
                     self.amplitudes = amps[spk_idx]
@@ -234,12 +238,12 @@ class neuron(object):
                 sleep_states = np.zeros((2,0))
                 for idx, f in enumerate(sleepFiles):
                     sleeps = np.load(f)
-                    t = np.where(np.diff(sleeps)!=0)[0]
-                    s0 = [sleeps[i-1] for i in t]
-                    t = t+(900*idx)
-                    t = t*4
-                    s = np.array(s0)
-                    t = np.stack((t,s))
+                    timestamps = (np.nonzero(np.diff(sleeps))[0]+1)*4
+                    time_ind = (timestamps/4)-1
+                    states = sleeps[time_ind.astype(int)]
+                    timestamps = timestamps+(900*idx)
+                    s = np.array(states)
+                    t = np.stack((timestamps,s))
                     sleep_states = np.concatenate((sleep_states,t), axis =1)
                     last = idx
                 self.behavior = sleep_states
@@ -633,7 +637,7 @@ class neuron(object):
             raise TypeError('ERROR: Second argument to crosscorr should be an instance of ''neuron'' class.')
 
 
-    def checkqual(self, save_update=False):
+    def checkqual(self, scrub_cell=False):
 
         #binsz set as elapsed time/100
         elapsed = self.time[-1] - self.time[0]
@@ -733,10 +737,7 @@ class neuron(object):
             if self.datatype == 'hdf5':
                 ax2.plot(self.meantrace)
             else:
-                if self._dat['spline']:
-                    ax2.plot(self.mean_waveform)
-                else:
-                    ax2.plot(self.template_waveform)
+                ax2.plot(self.waveform)
             ax2.set_ylabel('$Millivolts$')
         else:
             ax1.text(0,.96,"No waveform template found", transform=ax1.transAxes, color='red')
@@ -811,22 +812,13 @@ class neuron(object):
         flag = None
         while flag is None:
             time.sleep(0.1)
-            if g in (['1', '2', '3']):
+            if g in (['1', '2', '3', '4']):
+                self.quality = g
                 #currently assuming there might not be a quality file
-                if save_update:
-                    #always update quality if the save_update flag is true
-                    self.quality=g
-
-                    if self._dat['scrubbed']:
-                        #if there is already a scrubbed quality array - update the index of the cell
-                        self.scrubbed_qual_array[self.cell_idx] = self.quality
-                        np.save("scrubbed_quality.npy", self.scrubbed_qual_array)
-                    else:
-                        #make array if there isn't one already
-
-                        self.scrubbed_qual_array = np.full(np.shape(self.unique_clusters), np.NaN)
-                        self.scrubbed_qual_array[self.cell_idx] = self.quality
-                        np.save("scrubbed_quality.npy", self.scrubbed_qual_array)
+                if scrub_cell:
+                    #always update quality if the scrub_cell flag is true
+                    self.scrubbed_qual_array[self.cell_idx] = self.quality
+                    np.save("scrubbed_quality.npy", self.scrubbed_qual_array)
 
                 flag = 1
             else:
