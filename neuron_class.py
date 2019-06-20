@@ -736,7 +736,7 @@ class neuron(object):
                 if self._dat['spline']:
                     ax2.plot(self.mean_waveform)
                 else:
-                    ax2.plot(self.waveform_template)
+                    ax2.plot(self.template_waveform)
             ax2.set_ylabel('$Millivolts$')
         else:
             ax1.text(0,.96,"No waveform template found", transform=ax1.transAxes, color='red')
