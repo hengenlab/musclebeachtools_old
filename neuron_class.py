@@ -198,6 +198,7 @@ class neuron(object):
                 else:
                     scrubbed_quality = np.full(np.shape(self.unique_clusters), np.NaN)
                     np.save('scrubbed_quality.npy', scrubbed_quality)
+                    self.scrubbed_qual_array = scrubbed_quality
                     dat['scrubbed'] = False
                 if dat['qual']:
                     if dat['scrubbed']:
@@ -269,11 +270,11 @@ class neuron(object):
             if len(file_list) == 0:
                 print("Data set information: \nThis clustering output contains:")
                 s = '\t'+files_present[0]
-                for f in files_present[-1]:
+                for f in files_present[1:]:
                     s += '\n\t{}'.format(f)
                 print(s+'\nRecording started at: {} \nNumber of clusters: {}'.format(self.clocktime_start_time, len(self.unique_clusters)))
                 if dat['qual']:
-                    print('Cell quality: '.format(self.quality))
+                    print('Cell quality: '.format(int(self.quality)))
 
         #Brandeis data
         else:
