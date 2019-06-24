@@ -226,11 +226,13 @@ class neuron(object):
                     self.amplitudes = amps[spk_idx]
 
             self._dat = dat
+            self.onTime = np.array([self.time[0]])
+            self.offTime = np.array([self.time[-1]])
             # SLEEP-WAKE
             if rawdatadir and len(file_list) == 0:
                 fname = '{}*SleepStates*.npy'.format(rawdatadir)
                 files = glob.glob(fname)
-                numHrs = len(files)
+                numHrs = math.ceil((self.offTime - self.onTime)/3600)
                 baseName = files[0][:files[0].find('SleepStates')+11]
                 sleepFiles=[]
                 for i in range(numHrs):
@@ -252,8 +254,7 @@ class neuron(object):
             elif rawdatadir:
                 self.behavior = file_list[8]
             #TIME STUFF
-            self.onTime = np.array([self.time[0]])
-            self.offTime = np.array([self.time[-1]])
+
             startTimeIndex = block_label.find("times_") + 6
             if startTimeIndex == -1:
                 startTimeIndex = block_label.find("fs") + 2
