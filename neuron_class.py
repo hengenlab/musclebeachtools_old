@@ -214,7 +214,7 @@ class neuron(object):
                             self.quality_array = qual_array # this will error, fix this
                             self.quality = qual_array[clust_idx]
                         else:
-                            self.quality = self.scrubbed_quality
+                            self.quality = self.scrubbed_qual_array[cell_idx]
                     else:
                         self.quality_array = qual_array
                         self.quality = qual_array[clust_idx]
