@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import glob
+import math
 
 
 def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False):
@@ -103,7 +104,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
     if rawdatadir:
         fname = '{}*SleepStates*.npy'.format(rawdatadir)
         files = glob.glob(fname)
-        numHrs = math.ceil((self.offTime - self.onTime) / 3600)
+        numHrs = math.ceil((curr_spikes[-1] - curr_spikes[0]) / 3600)
         baseName = files[0][:files[0].find('SleepStates') + 11]
         sleepFiles = []
         for i in range(numHrs):
@@ -120,7 +121,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
             t = np.stack((timestamps, s))
             sleep_states = np.concatenate((sleep_states, t), axis = 1)
             last = idx
-        self.behavior = sleep_states
+        behavior = sleep_states
         files_present.append('SLEEP STATES through hour {}'.format(last + 1))
     file_list[8] = files_present
     file_list[9]=dat
