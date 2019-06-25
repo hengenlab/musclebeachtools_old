@@ -24,7 +24,7 @@ def bin_FR_mat(datadir, binsz = 40, qual = 1, rawdatadir = [], multi_probe = Fal
 		cell_list = np.where(qual_list == qual)[0]
 	cell_list = np.sort(cell_list)
 
-	filelist = mbt.makeFileList(datadir)
+	filelist = mbt.makeFileList(datadir, rawdatadir = rawdatadir)
 	cells = []
 	for a,i in enumerate(cell_list):
 	    print(a, ' ', i)
