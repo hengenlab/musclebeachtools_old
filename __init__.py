@@ -6,3 +6,4 @@ from .stats import *
 from .spikeword_tools import *
 #from .database import *
 from .makeFileList import *
+from .bin_FR_mat import *
