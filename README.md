@@ -43,7 +43,7 @@ To test it open powershell/terminal
 
 Init 
 ------
-`cell = mbt.neuron( datafile = '/YOUR_PATH/', rawdatadir='/SW_PATH/', datatype='npy', cell_idx = 0, start_block=0, clust_idx = 0, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[])`
+`cell = mbt.neuron( datadir = '/YOUR_PATH/', rawdatadir='/SW_PATH/', datatype='npy', cell_idx = 0, start_block=0, clust_idx = 0, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[])`
 ### Parameters
 - datafile: Path to the clustering output, in string format
 - rawdatadir: Path to the sleep-wake data if you have it. Keep the default to False if you don't have this information
