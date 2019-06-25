@@ -80,7 +80,7 @@ class neuron(object):
                     f   = "*chg_"+str(ch)+"*.npy"
                     files_full = np.sort(glob.glob(f))
                 else:
-                    files_full = glob.glob('*.npy')
+                    files_full = np.sort(glob.glob('*.npy'))
                 possible_files = ['amplitudes', 'waveform','qual', 'spline', 'scrubbed']
                 dat = {}
                 for f in possible_files:

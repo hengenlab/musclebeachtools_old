@@ -41,7 +41,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
         f = "*chg_" + str(ch) + "*.npy"
         files_full = np.sort(glob.glob(f))
     else:
-        files_full = glob.glob('*.npy')
+        files_full = np.sort(glob.glob('*.npy'))
     idx = files_full[0].find('chg_')
     baseName = files_full[0][:idx + 6]
     possible_files = ['amplitudes', 'waveform', 'qual', 'spline', 'scrubbed']
