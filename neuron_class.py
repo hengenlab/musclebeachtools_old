@@ -191,13 +191,13 @@ class neuron(object):
                     self.waveform = temp
 
                 # do quality stuff
-                scrubbed_files = glob.glob('scrubbed_quality.npy')
+                scrubbed_files = glob.glob(f'scrubbed_quality_{start_block}.npy')
                 if len(scrubbed_files) > 0:
                     scrubbed_qual_array = np.load(scrubbed_files[0])
                     dat['scrubbed'] = True
                 else:
                     scrubbed_quality = np.full(np.shape(self.unique_clusters), np.NaN)
-                    np.save('scrubbed_quality.npy', scrubbed_quality)
+                    np.save(f'scrubbed_quality_{start_block}.npy', scrubbed_quality)
                     self.scrubbed_qual_array = scrubbed_quality
                     dat['scrubbed'] = False
                 if dat['qual']:
@@ -265,6 +265,8 @@ class neuron(object):
             clocktimeEIdx = block_label.find('-P')-1
             self.ecube_start_time = int(block_label[startTimeIndex: startTimeIndexEnd])
             self.clocktime_start_time = block_label[clocktimeSIdx: clocktimeEIdx]
+            self.start_block = start_block
+            self.end_block = end_block
 
             self.directory = datadir
 
@@ -820,7 +822,7 @@ class neuron(object):
                 if scrub_cell:
                     #always update quality if the scrub_cell flag is true
                     self.scrubbed_qual_array[self.cell_idx] = self.quality
-                    np.save("scrubbed_quality.npy", self.scrubbed_qual_array)
+                    np.save(f"scrubbed_quality_{self.start_block}.npy", self.scrubbed_qual_array)
 
                 flag = 1
             else:
