@@ -3,7 +3,7 @@ import os
 import glob
 import musclebeachtools as mb
 
-def scrubClusters(datafile, rawdatadir, multi_probe, probeNumber):
+def scrubClusters(datafile, rawdatadir, multi_probe, probeNumber, start_block = 0, end_block = 1):
 	"""
 	runs through all the cells in a dataset and calls the checkqual function so you can set the quality 
 
@@ -24,7 +24,7 @@ def scrubClusters(datafile, rawdatadir, multi_probe, probeNumber):
 		start_cell= int(input("what cell index would you like to start scrubbing at? From 0 - {}".format(num_cells)))
 
 	for c in np.arange(start_cell, num_cells):
-		cell=mb.neuron(datadir =datafile, rawdatadir = rawdatadir, clust_idx = clusters[c], file_list = file_list)
+		cell=mb.neuron(datadir =datafile, rawdatadir = rawdatadir, clust_idx = clusters[c], file_list = file_list, start_block = start_block, end_block = end_block)
 		cell.checkqual(scrub_cell = True)
 
 
