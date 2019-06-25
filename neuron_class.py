@@ -252,7 +252,7 @@ class neuron(object):
                 self.behavior = sleep_states
                 files_present.append('SLEEP STATES through hour {}'.format(last+1))
             elif rawdatadir:
-                self.behavior = file_list[8]
+                self.behavior = file_list[7]
             #TIME STUFF
 
             startTimeIndex = block_label.find("times_") + 6
