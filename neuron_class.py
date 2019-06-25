@@ -124,9 +124,9 @@ class neuron(object):
                     if dat['qual']:
                         qual_array = load_files(qual)[0]
                         files_present.append('automated cluster quality')
-                    if dat['scrubbed']:
-                        scrubbed_qual_array = np.load('scrubbed_quality.npy')
-                        files_present.append('scrubbed cluster quality')
+                    # if dat['scrubbed']:
+                    #     scrubbed_qual_array = np.load(f'scrubbed_quality.npy')
+                    #     files_present.append('scrubbed cluster quality')
                     if dat['amplitudes']:
                         amps = load_files(ampfiles)[0]
                         files_present.append('amplitudes')
