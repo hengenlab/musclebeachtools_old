@@ -4,7 +4,7 @@ import glob
 import math
 
 
-def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False):
+def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
     """
     sorts and loads all the files in a directory in the same way that neuon_class does
     then puts each loaded array into a list and returns that list
@@ -104,7 +104,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
     if rawdatadir:
         fname = '{}*SleepStates*.npy'.format(rawdatadir)
         files = glob.glob(fname)
-        numHrs = math.ceil((curr_spikes[-1] - curr_spikes[0]) / 3600)
+        numHrs = np.round((curr_spikes[-1] - curr_spikes[0]) / (3600*fs))
         baseName = files[0][:files[0].find('SleepStates') + 11]
         sleepFiles = []
         for i in range(numHrs):
