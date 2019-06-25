@@ -89,10 +89,10 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
             qual_array = [np.load(qual[i]) for i in range(start_block, end_block)][0]
             file_list[5] = qual_array
             files_present.append('automated cluster quality')
-        if dat['scrubbed']:
-            scrubbed_qual_array = np.load('scrubbed_quality.npy')
-            file_list[6] = scrubbed_qual_array
-            files_present.append('scrubbed cluster quality')
+        # if dat['scrubbed']:
+        #     scrubbed_qual_array = np.load('scrubbed_quality.npy')
+        #     file_list[6] = scrubbed_qual_array
+        #     files_present.append('scrubbed cluster quality')
         if dat['amplitudes']:
             amps = [np.load(ampfiles[i]) for i in range(start_block, end_block)][0]
             file_list[4] = amps
@@ -103,7 +103,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
     if rawdatadir:
         fname = '{}*SleepStates*.npy'.format(rawdatadir)
         files = glob.glob(fname)
-        numHrs = len(files)
+        numHrs = math.ceil((self.offTime - self.onTime) / 3600)
         baseName = files[0][:files[0].find('SleepStates') + 11]
         sleepFiles = []
         for i in range(numHrs):
@@ -112,15 +112,15 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
         sleep_states = np.zeros((2, 0))
         for idx, f in enumerate(sleepFiles):
             sleeps = np.load(f)
-            t = np.where(np.diff(sleeps) != 0)[0]
-            s0 = [sleeps[i - 1] for i in t]
-            t = t + (900 * idx)
-            t = t * 4
-            s = np.array(s0)
-            t = np.stack((t, s))
+            timestamps = (np.nonzero(np.diff(sleeps))[0] + 1) * 4
+            time_ind = (timestamps / 4) - 1
+            states = sleeps[time_ind.astype(int)]
+            timestamps = timestamps + (900 * idx)
+            s = np.array(states)
+            t = np.stack((timestamps, s))
             sleep_states = np.concatenate((sleep_states, t), axis = 1)
             last = idx
-        file_list[7] = sleep_states
+        self.behavior = sleep_states
         files_present.append('SLEEP STATES through hour {}'.format(last + 1))
     file_list[8] = files_present
     file_list[9]=dat
