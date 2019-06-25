@@ -32,7 +32,7 @@ def scrubClusters(datafile, rawdatadir, multi_probe, probeNumber, start_block = 
 	#basically how many of each quality cell there was
 	quals=np.zeros(5)
 	#need to restate this line in case there wasn't a scrubbed quality array to begin with
-	scrubbed_qual_array = np.load('scrubbed_quality.npy')
+	scrubbed_qual_array = np.load(f'scrubbed_quality_{start_block}.npy')
 	for q in range(len(scrubbed_qual_array)):
 		quals[int(scrubbed_qual_array[q])] = quals[int(scrubbed_qual_array[q])] +1
 
