@@ -3,7 +3,7 @@ import numpy as np
 
 
 
-def load_clusters(datadir, rawdatadir=False, multi_probe=False, probeNumber=1, start_block=0, end_block=1, filter):
+def load_clusters(datadir, filter, rawdatadir=False, multi_probe=False, probeNumber=1, start_block=0, end_block=1):
     """
 
     :param datadir: directory with KS2 output (t folder)
