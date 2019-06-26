@@ -122,6 +122,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
             sleep_states = np.concatenate((sleep_states, t), axis = 1)
             last = idx
         behavior = sleep_states
+        file_list[7] = behavior
         files_present.append('SLEEP STATES through hour {}'.format(last + 1))
     file_list[8] = files_present
     file_list[9]=dat
