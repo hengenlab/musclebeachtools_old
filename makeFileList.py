@@ -107,7 +107,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
         numHrs = np.round((curr_spikes[-1] - curr_spikes[0]) / (3600*fs))
         baseName = files[0][:files[0].find('SleepStates') + 11]
         sleepFiles = []
-        for i in range(numHrs):
+        for i in range(int(numHrs)):
             file = baseName + str(i + 1) + '.npy'
             sleepFiles.append(file)
         sleep_states = np.zeros((2, 0))
