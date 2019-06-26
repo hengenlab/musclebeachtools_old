@@ -1,6 +1,6 @@
 #SPIKEWORDS_9418
 
-import musclebeachtools_old as mbt
+import musclebeachtools as mbt
 import numpy as np
 import matplotlib.pyplot as plt
 import os
