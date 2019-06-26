@@ -1,10 +1,9 @@
 import numpy as np
 import os
 import glob
-import math
 
 
-def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
+def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
     """
     sorts and loads all the files in a directory in the same way that neuon_class does
     then puts each loaded array into a list and returns that list
@@ -25,10 +24,33 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
     9               dat dictionary
     10              block label
     """
-    if datafile not in os.getcwd():
+
+    def pull_files(fileName, also = None, butNot = None):
+        '''
+
+        :param fileName: wildcard name of file to pull from directory
+        :param also: if there are more names to pull and save in the same list
+        :param butNot: if there is a type to discard from those names. for example 'scrubbed' could be discarded when pulling 'quality' to only pull the phy qual output
+        :return: list of file names
+        '''
+        if also is not None:
+            return [f for f in files_full if f in glob.glob(fileName) or f in glob.glob(also)]
+        if butNot is not None:
+            return [f for f in files_full if f in glob.glob(fileName) and f not in glob.glob(butNot)]
+        return [f for f in files_full if f in glob.glob(fileName)]
+
+    def load_files(files):
+        '''
+
+        :param files: list of file names
+        :return: the loaded file
+        '''
+        return [np.load(files[i]) for i in range(start_block, end_block)]
+
+    if datadir not in os.getcwd():
         try:
             os.chdir(os.path.expanduser('~'))
-            os.chdir(os.path.realpath(datafile))
+            os.chdir(os.path.realpath(datadir))
         except FileNotFoundError:
             print("*** Data File does not exist *** check the path")
             return
@@ -37,6 +59,8 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
     file_list = list(np.zeros(11))
     files_present = []
 
+
+    # pulls all files in a directory according to probe number
     if multi_probe:
         ch = probeNumber
         f = "*chg_" + str(ch) + "*.npy"
@@ -45,57 +69,53 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
         files_full = np.sort(glob.glob('*.npy'))
     idx = files_full[0].find('chg_')
     baseName = files_full[0][:idx + 6]
-    possible_files = ['amplitudes', 'waveform', 'qual', 'spline', 'scrubbed']
+    possible_files = ['amplitudes', 'waveform', 'qual', 'spline']
 
     dat = {}
-    for f in possible_files:
+    for f in possible_files: # determines if there are certain files to load
         g = glob.glob('*{}*'.format(f))
         dat[f] = len(g) > 0
 
-    spikefiles = [f for f in files_full if f in glob.glob('*spike_times*')]
-    clustfiles = [f for f in files_full if f in glob.glob('*spike_clusters*')]
-    peakfiles = [f for f in files_full if f in glob.glob('*peak*') or f in glob.glob('*max_channel*')]
-    templatefiles = [f for f in files_full if f in glob.glob('*waveform.npy')]
-    qual = [f for f in files_full if f in glob.glob('*qual*') if f not in glob.glob('*scrubbed*')]
-    ampfiles = [f for f in files_full if f in glob.glob('*amplitudes*')]
-    splinefiles = [f for f in files_full if f in glob.glob('*spline*')]
+    spikefiles = pull_files('*spike_times*')
+    clustfiles = pull_files('*spike_clusters*')
+    peakfiles = pull_files('*peak*', also = '*max_channel*')
+    templatefiles = pull_files('*waveform.npy')
+    qual = pull_files('*qual*', butNot = '*scrubbed*')
+    ampfiles = pull_files('*amplitudes*')
+    splinefiles = pull_files('*spline*')
 
     dat['max_channel'] = len(peakfiles) > 0
 
-    # LOADS DATA
-    try:
+
+    try: # LOADS DATA
         print("Loading files...")
-        curr_clust = [np.load(clustfiles[i]) for i in range(start_block, end_block)][0]
+        curr_clust = load_files(clustfiles)[0]
         file_list[0] = curr_clust
-        curr_spikes = [np.load(spikefiles[i]) for i in range(start_block, end_block)][0]
+        curr_spikes = load_files(spikefiles)[0]
         file_list[1] = curr_spikes
         if dat['max_channel']:
-            peak_ch = [np.load(peakfiles[i]) for i in range(start_block, end_block)][0]
+            peak_ch = load_files(peakfiles)[0]
             file_list[2] = peak_ch
             files_present.append('max/peak channels')
         if dat['spline']:
-            templates = [np.load(splinefiles[i]) for i in range(start_block, end_block)][0]
+            templates = load_files(splinefiles)[0]
             file_list[3] = templates
             files_present.append('smoothed waveform')
         elif dat['waveform']:
             if len(glob.glob('*mean_waveform.npy')) > 0:
-                templates = [np.load(glob.glob('*mean_waveform.npy')[i]) for i in range(start_block, end_block)][0]
+                templates = load_files(glob.glob('*mean_waveform.npy'))[0]
                 file_list[3] = templates
                 files_present.append('mean waveform')
             else:
-                templates = [np.load(templatefiles[i]) for i in range(start_block, end_block)][0]
+                templates = load_files(templatefiles)[0]
                 file_list[3] = templates
                 files_present.append('template waveform')
         if dat['qual']:
-            qual_array = [np.load(qual[i]) for i in range(start_block, end_block)][0]
+            qual_array = load_files(qual)[0]
             file_list[5] = qual_array
             files_present.append('automated cluster quality')
-        # if dat['scrubbed']:
-        #     scrubbed_qual_array = np.load('scrubbed_quality.npy')
-        #     file_list[6] = scrubbed_qual_array
-        #     files_present.append('scrubbed cluster quality')
         if dat['amplitudes']:
-            amps = [np.load(ampfiles[i]) for i in range(start_block, end_block)][0]
+            amps = load_files(ampfiles)[0]
             file_list[4] = amps
             files_present.append('amplitudes')
     except:
@@ -104,7 +124,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
     if rawdatadir:
         fname = '{}*SleepStates*.npy'.format(rawdatadir)
         files = glob.glob(fname)
-        numHrs = np.round((curr_spikes[-1] - curr_spikes[0]) / (3600*fs))
+        numHrs = int(np.round((curr_spikes[-1] - curr_spikes[0]) / (3600*fs)))
         baseName = files[0][:files[0].find('SleepStates') + 11]
         sleepFiles = []
         for i in range(numHrs):
@@ -122,6 +142,7 @@ def makeFileList(datafile, rawdatadir=False, multi_probe = False, start_block = 
             sleep_states = np.concatenate((sleep_states, t), axis = 1)
             last = idx
         behavior = sleep_states
+        file_list[7] = behavior
         files_present.append('SLEEP STATES through hour {}'.format(last + 1))
     file_list[8] = files_present
     file_list[9]=dat

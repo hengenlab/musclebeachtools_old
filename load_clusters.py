@@ -3,7 +3,7 @@ import numpy as np
 
 
 
-def load_clusters(datadir, rawdatadir=False, multi_probe=False, probeNumber=1, start_block=0, end_block=1, filter=[]):
+def load_clusters(datadir, filter, rawdatadir=False, multi_probe=False, probeNumber=1, start_block=0, end_block=1):
     """
 
     :param datadir: directory with KS2 output (t folder)
@@ -20,5 +20,5 @@ def load_clusters(datadir, rawdatadir=False, multi_probe=False, probeNumber=1, s
     neurons = []
     for clust_idx in unique_clusters:
         if qual[clust_idx] in filter:
-            neurons.append(mbt.neuron(datadir,rawdatadir, clust_idx=clust_idx, file_list=fileList))
+            neurons.append(mbt.neuron(datadir,rawdatadir, clust_idx=clust_idx,start_block = start_block, end_block = end_block, file_list=fileList))
     return neurons
