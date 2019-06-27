@@ -3,7 +3,7 @@ import numpy as np
 
 
 
-def load_clusters(datadir, filter, rawdatadir=False, multi_probe=False, probeNumber=1, start_block=0, end_block=1):
+def load_clusters(datadir, filt, rawdatadir=False, multi_probe=False, probeNumber=1, start_block=0, end_block=1):
     """
 
     :param datadir: directory with KS2 output (t folder)
@@ -16,9 +16,12 @@ def load_clusters(datadir, filter, rawdatadir=False, multi_probe=False, probeNum
     """
     fileList = mbt.makeFileList(datadir, rawdatadir, multi_probe, start_block, end_block, probeNumber)
     unique_clusters = np.unique(fileList[0])
-    qual = fileList[5]
+    try:
+        qual_list = np.load('scrubbed_quality_' + str(start_block) + '.npy')
+    except FileNotFoundError:
+        qual_list = fileList[5]
     neurons = []
     for clust_idx in unique_clusters:
-        if qual[clust_idx] in filter:
+        if qual_list[clust_idx] in filt:
             neurons.append(mbt.neuron(datadir,rawdatadir, clust_idx=clust_idx,start_block = start_block, end_block = end_block, file_list=fileList))
     return neurons
