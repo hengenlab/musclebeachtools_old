@@ -14,11 +14,11 @@ def scrubClusters(datafile, rawdatadir, multi_probe, probeNumber, start_block = 
 	clusters=np.unique(file_list[0])
 	num_cells = len(clusters)
 
-	sq = glob.glob("*scrubbed*.npy")
+	sq = glob.glob("*scrubbed_quality_{}.npy".format(start_block))
 	start_cell = 0
 	if len(sq) > 0:
 		print ("at least one of these cells has been scrubbed before")
-		sq_array = file_list[6]
+		sq_array = np.load(sq[0])
 		first_unscrubbed = np.where(np.isnan(sq_array))[0]
 		print("the first unscrubbed cell is index {}".format(first_unscrubbed[0]))
 		start_cell= int(input("what cell index would you like to start scrubbing at? From 0 - {}".format(num_cells)))
