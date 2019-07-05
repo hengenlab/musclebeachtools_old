@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import glob
+import math
 
 
 def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
