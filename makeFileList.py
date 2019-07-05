@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import glob
-import math
 
 
 def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
@@ -125,7 +124,7 @@ def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0
     if rawdatadir:
         fname = '{}*SleepStates*.npy'.format(rawdatadir)
         files = glob.glob(fname)
-        numHrs = math.ceil((self.offTime - self.onTime)/3600)
+        numHrs = int(np.round((curr_spikes[-1] - curr_spikes[0]) / (3600*fs)))
         baseName = files[0][:files[0].find('SleepStates')+11]
         hour_list = [int(files[i][files[i].find('SleepStates')+11:files[i].find('SleepStates')+13]) for i in np.arange(np.size(files))]
         hour_list = np.sort(hour_list)
@@ -149,7 +148,6 @@ def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0
         files_present.append('You have data for the following SLEEP STATES: {}'.format(hour_list))
         if np.size(hour_list) < numHrs:
             files_present.append('PLEASE NOTE: you do not have sleep states for the entire block!')
-
     file_list[8] = files_present
     file_list[9]=dat
 
