@@ -124,26 +124,31 @@ def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0
     if rawdatadir:
         fname = '{}*SleepStates*.npy'.format(rawdatadir)
         files = glob.glob(fname)
-        numHrs = int(np.round((curr_spikes[-1] - curr_spikes[0]) / (3600*fs)))
-        baseName = files[0][:files[0].find('SleepStates') + 11]
-        sleepFiles = []
-        for i in range(int(numHrs)):
-            file = baseName + str(i + 1) + '.npy'
-            sleepFiles.append(file)
-        sleep_states = np.zeros((2, 0))
+        numHrs = math.ceil((self.offTime - self.onTime)/3600)
+        baseName = files[0][:files[0].find('SleepStates')+11]
+        hour_list = [int(files[i][files[i].find('SleepStates')+11:files[i].find('SleepStates')+13]) for i in np.arange(np.size(files))]
+        hour_list = np.sort(hour_list)
+        sleepFiles=[]
+        for i in hour_list:
+            sf = baseName+str(i)+'.npy'
+            sleepFiles.append(sf)
+        sleep_states = np.zeros((2,0))
         for idx, f in enumerate(sleepFiles):
             sleeps = np.load(f)
-            timestamps = (np.nonzero(np.diff(sleeps))[0] + 1) * 4
-            time_ind = (timestamps / 4) - 1
+            timestamps = (np.nonzero(np.diff(sleeps))[0]+1)*4
+            time_ind = (timestamps/4)-1
             states = sleeps[time_ind.astype(int)]
-            timestamps = timestamps + (900 * idx)
+            timestamps = timestamps+(3600*idx)
             s = np.array(states)
-            t = np.stack((timestamps, s))
-            sleep_states = np.concatenate((sleep_states, t), axis = 1)
+            t = np.stack((timestamps,s))
+            sleep_states = np.concatenate((sleep_states,t), axis =1)
             last = idx
         behavior = sleep_states
         file_list[7] = behavior
-        files_present.append('SLEEP STATES through hour {}'.format(last + 1))
+        files_present.append('You have data for the following SLEEP STATES: {}'.format(hour_list))
+        if np.size(hour_list) < numHrs:
+            files_present.append('PLEASE NOTE: you do not have sleep states for the entire block!')
+
     file_list[8] = files_present
     file_list[9]=dat
 
