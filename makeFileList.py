@@ -18,7 +18,6 @@ def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0
     3				waveform(mean waveform, template waveform, or spline depending on what exists in the file)
     4				amplitude
     5				auto_qual_array
-    6				scrubbed_qual_array
     7               behavior
     8               files_present
     9               dat dictionary

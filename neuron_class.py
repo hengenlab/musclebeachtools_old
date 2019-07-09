@@ -5,14 +5,9 @@ import matplotlib.patches as patches
 import h5py
 import time
 import seaborn as sns
-import matplotlib
 import glob
 import math
-# import neuraltoolkit.ntk_ecube as ntk
 import datetime as dt
-#matplotlib.use('TkAgg')
-import pdb
-
 
 class neuron(object):
     """
@@ -20,9 +15,11 @@ class neuron(object):
            :param rawdatadir: directory where the raw data and the sleep states are stored
            :param datatype: 'npy' for washu 'hp5' for brandeis
            :param cell_idx: cell number to look at in relation to the total number of clusters found (different from the cluster index)
-           :param start_block: essentially what file number to begin at
-           :param clust_idx: this is the cluster number found in the unique clusters array, if you're building a neuron from database information then you will know this number and not the cell_idx. This is a better identifier than cell_idx as it correspondes with Phy, use this when possible.
-           :param end_block: what file number to end at
+           :param start_block: what cluster block to begin loading
+           :param end_block: what cluster block to end at
+           :param clust_idx: this is the cluster number found in the unique clusters array,
+                            if you're building a neuron from database information then you will know this number and not the cell_idx.
+                            This is a better identifier than cell_idx as it correspondes with Phy, use this when possible.
            :param multi_probe: True if the recording was multiple probe
            :param probenumber: what probe to look at for multi_probe recordings
            :param fs: sampling rate
@@ -31,21 +28,31 @@ class neuron(object):
     def __init__(self, datadir, rawdatadir=False, datatype= 'npy', cell_idx = 0, start_block=0, clust_idx = False, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[]):
 
         def pull_files(fileName, also = None, butNot = None):
+            '''
+            :param fileName: wildcard name of file to pull from directory
+            :param also: if there are more names to pull and save in the same list
+            :param butNot: if there is a type to discard from those names. for example 'scrubbed' could be discarded when pulling 'quality' to only pull the phy qual output
+            :return: list of file names
+            '''
             if also is not None:
                 return [f for f in files_full if f in glob.glob(fileName) or f in glob.glob(also)]
             if butNot is not None:
                 return [f for f in files_full if f in glob.glob(fileName) and f not in glob.glob(butNot)]
             return [f for f in files_full if f in glob.glob(fileName)]
         def load_files(files):
+            '''
+            :param files: list of file names
+            :return: the loaded file
+            '''
             return [np.load(files[i]) for i in range(start_block, end_block)]
 
-        if datatype == 'npy':
+        if datatype == 'npy': # washU data
 
             print('You are using WashU data')
             if not clust_idx:
-                print('working on cell index '+str(cell_idx)+'\n')
+                print('working on cell index '+str(cell_idx))
             else:
-                print('working on cluster number '+str(clust_idx)+'\n')
+                print('working on cluster number '+str(clust_idx))
 
 
             # going to folder that contains processed data if it exists
@@ -58,7 +65,7 @@ class neuron(object):
                     return
 
             files_present = []
-            if len(file_list)>0:
+            if len(file_list)>0: #if there is a file list load the files from that
                 dat = file_list[9]
                 files_present = file_list[8]
                 print('using file list')
@@ -73,7 +80,7 @@ class neuron(object):
                     amps = file_list[4]
                 block_label = file_list[10]
 
-            else:
+            else: # load the files manually
                 # SORTS DATA FILES
                 if multi_probe:
                     ch = probenumber
@@ -81,7 +88,7 @@ class neuron(object):
                     files_full = np.sort(glob.glob(f))
                 else:
                     files_full = np.sort(glob.glob('*.npy'))
-                possible_files = ['amplitudes', 'waveform','qual', 'spline', 'scrubbed']
+                possible_files = ['amplitudes', 'waveform','qual', 'spline']
                 dat = {}
                 for f in possible_files:
                     g = glob.glob('*{}*'.format(f))
@@ -98,14 +105,12 @@ class neuron(object):
                 block_label = spikefiles[0][:spikefiles[0].find('spike')]
 
                 dat['max_channel'] = len(peakfiles) > 0
-                length = np.zeros(end_block)
+                length = np.zeros(end_block) # this will be necessary later with tracking but done differently
 
                 # LOADS DATA
-                # still need to deal with if a file doesnt exist
                 try:
                     print("Loading files...")
 
-                    #yea the length here is still wrong, figure out where to deal with that
                     curr_clust = load_files(clustfiles)[0]
                     curr_spikes = load_files(spikefiles)[0]
                     if dat['max_channel']:
@@ -124,9 +129,6 @@ class neuron(object):
                     if dat['qual']:
                         qual_array = load_files(qual)[0]
                         files_present.append('automated cluster quality')
-                    # if dat['scrubbed']:
-                    #     scrubbed_qual_array = np.load(f'scrubbed_quality.npy')
-                    #     files_present.append('scrubbed cluster quality')
                     if dat['amplitudes']:
                         amps = load_files(ampfiles)[0]
                         files_present.append('amplitudes')
@@ -135,14 +137,15 @@ class neuron(object):
 
             if end_block-start_block > 1:
                 print("this cannot be done yet")
-                # can't do this yet, see past code for an idea of how it will be done
-                # this is gonna be where tracking comes in
+                # Tracking
+                # use keys to find cluster index for that block
 
-                # go up one directory, find the time of the overlap
+                # find the time of the overlap
                 # convert the overlap to seconds, cut that part out of the spike array
                 # add the overlap time to the spikes in the rest of the spike times array
 
-                #spikes are separated into lists, so that should be easy, concatenate at the end
+                #concatenate at the end
+
 
             else:
                 # do peak stuff
@@ -155,19 +158,19 @@ class neuron(object):
 
                 # do spike stuff
                 self.unique_clusters = np.unique(curr_clust)
-                if not clust_idx:
+                if not clust_idx: #establish both cluster and cell index if only one was given
                     clust_idx = self.unique_clusters[int(cell_idx)]
                     self.clust_idx = clust_idx
                     self.cell_idx = cell_idx
                 else:
                     clust_idx=int(clust_idx)
                     cell_idx = np.where(self.unique_clusters == clust_idx)[0]
+                    cell_idx = cell_idx[0]
                     self.clust_idx = clust_idx
                     self.cell_idx = cell_idx
 
                 # load the file with the tracking keys
-                # index into the start_block at the cell_idx number (check this, might be cluster index) and find the new cluster number
-
+                # index into the start_block and find the new cluster number
 
                 spk_idx = np.where(curr_clust == clust_idx)[0]
                 spiketimes = curr_spikes[spk_idx]/fs
@@ -211,7 +214,7 @@ class neuron(object):
                         if last_idx is not None:
                             print("First unscrubbed cell index: ", last_idx)
                         if np.isnan(self.scrubbed_qual_array[cell_idx]):
-                            self.quality_array = qual_array # this will error, fix this
+                            self.quality_array = qual_array
                             self.quality = qual_array[clust_idx]
                         else:
                             self.quality = self.scrubbed_qual_array[cell_idx]
@@ -221,7 +224,6 @@ class neuron(object):
                 else:
                     print("There is no quality rating for any of these cells. Run 'checkqual()' and change the save_update flag to True if you'd like to start a quality array")
                     self.quality = 0
-                # do any other stuff that pops up
                 if dat['amplitudes']:
                     self.amplitudes = amps[spk_idx]
 
@@ -229,7 +231,7 @@ class neuron(object):
             self.onTime = np.array([self.time[0]])
             self.offTime = np.array([self.time[-1]])
             # SLEEP-WAKE
-            if rawdatadir and len(file_list) == 0:
+            if rawdatadir and len(file_list)==0:
                 fname = '{}*SleepStates*.npy'.format(rawdatadir)
                 files = glob.glob(fname)
                 numHrs = math.ceil((self.offTime - self.onTime)/3600)
@@ -280,8 +282,9 @@ class neuron(object):
                 for f in files_present[1:]:
                     s += '\n\t{}'.format(f)
                 print(s+'\nRecording started at: {} \nNumber of clusters: {}'.format(self.clocktime_start_time, len(self.unique_clusters)))
-                if dat['qual']:
-                    print('Cell quality: '.format(int(self.quality)))
+            if dat['qual']:
+                print(f'Cell quality: {self.quality}')
+            print('\n')
 
         #Brandeis data
         else:
