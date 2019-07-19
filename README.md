@@ -34,6 +34,9 @@ add this line
 `export PYTHONPATH=/location_of_musclebeachtools:$PYTHONPATH`
 
 
+### Dependencies
+Run the line below to install dependencies   
+`conda install ipython seaborn numpy scipy h5py colour`
 
 ### Testing
 To test it open powershell/terminal  
