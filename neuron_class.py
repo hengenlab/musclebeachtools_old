@@ -193,6 +193,12 @@ class neuron(object):
                         self.cell_type = 'FS'
                     self.waveform = temp
 
+                if len(glob.glob('*mean_waveform.npy')) > 0:
+                    print('taking mean amplitude from mean waveform')
+                    mean_waveform = load_files(glob.glob('*mean_waveform.npy'))[0]
+                    mean_waveform = mean_waveform[clust_idx]
+                    self.mean_amplitude = np.abs(np.amin(mean_waveform))
+
                 # do quality stuff
                 scrubbed_files = glob.glob(f'scrubbed_quality_{start_block}.npy')
                 if len(scrubbed_files) > 0:
@@ -225,6 +231,7 @@ class neuron(object):
                     print("There is no quality rating for any of these cells. Run 'checkqual()' and change the save_update flag to True if you'd like to start a quality array")
                     self.quality = 0
                 if dat['amplitudes']:
+                    # this is not correct bc phy is not correct for the amplitudes
                     self.amplitudes = amps[spk_idx]
 
             self._dat = dat
