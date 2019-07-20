@@ -1,9 +1,10 @@
 import numpy as np
 import os
 import glob
+import math
+import neuraltoolkit as ntk 
 
-
-def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
+def makeFileList(datadir, file_startclust, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
     """
     sorts and loads all the files in a directory in the same way that neuon_class does
     then puts each loaded array into a list and returns that list
@@ -122,14 +123,27 @@ def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0
         print('there was an error loading the files')
         return
     if rawdatadir:
+        file_startdir = np.sort(glob.glob(rawdatadir + 'Head*.bin'))[0]        
+        t1 = ntk.load_raw_binary_gain_chmap(file_startdir, 512, 'PCB_tetrode', nprobes=8, t_only=1)
+        t2 = ntk.load_raw_binary_gain_chmap(rawdatadir +file_startclust, 512, 'PCB_tetrode', nprobes=8, t_only=1)
+        cluster_time = (t2-t1)/1e9
         fname = '{}*SleepStates*.npy'.format(rawdatadir)
         files = glob.glob(fname)
         numHrs = int(np.round((curr_spikes[-1] - curr_spikes[0]) / (3600*fs)))
         baseName = files[0][:files[0].find('SleepStates')+11]
-        hour_list = [int(files[i][files[i].find('SleepStates')+11:files[i].find('SleepStates')+13]) for i in np.arange(np.size(files))]
+        hour_list = [int(files[i][files[i].find('SleepStates')+11:files[i].find('.')]) for i in np.arange(np.size(files))]
         hour_list = np.sort(hour_list)
+        start_hour = math.floor(cluster_time/3600)
+        these_hours = hour_list[np.where(hour_list >= start_hour)[0]]
+        if np.size(these_hours) > numHrs:
+            these_hours = these_hours[:24]
+        contcheck = np.unique(np.diff(these_hours))
+        if np.size(contcheck) > 1:
+            ('sleep state hours are not continuous, taking only continuous ones')
+            stop = np.where(np.diff(these_hours) != 1)[0][0]
+            these_hours = these_hours[:stop]
         sleepFiles=[]
-        for i in hour_list:
+        for i in these_hours:
             sf = baseName+str(i)+'.npy'
             sleepFiles.append(sf)
         sleep_states = np.zeros((2,0))
@@ -143,9 +157,14 @@ def makeFileList(datadir, rawdatadir=False, multi_probe = False, start_block = 0
             t = np.stack((timestamps,s))
             sleep_states = np.concatenate((sleep_states,t), axis =1)
             last = idx
+        ss_datstart = these_hours[0]*3600
+        ss_offset = ss_datstart-cluster_time
+        sleep_states[0] = sleep_states[0]+ss_offset
+        null_idx = np.where(sleep_states[0]<0)[0]
+        sleep_states = np.delete(sleep_states, null_idx, 1)
         behavior = sleep_states
         file_list[7] = behavior
-        files_present.append('You have data for the following SLEEP STATES: {}'.format(hour_list))
+        files_present.append('You have data for the following SLEEP STATES: {}'.format(these_hours))
         if np.size(hour_list) < numHrs:
             files_present.append('PLEASE NOTE: you do not have sleep states for the entire block!')
     file_list[8] = files_present
