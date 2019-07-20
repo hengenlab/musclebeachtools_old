@@ -34,18 +34,22 @@ add this line
 `export PYTHONPATH=/location_of_musclebeachtools:$PYTHONPATH`
 
 
+### Dependencies
+Run the line below to install dependencies   
+`conda install ipython seaborn numpy scipy h5py colour`
 
 ### Testing
 To test it open powershell/terminal  
     ipython  
     `import musclebeachtools as mbt`
 
+# Neuron Class
 
 Init 
 ------
 `cell = mbt.neuron( datadir = '/YOUR_PATH/', rawdatadir='/SW_PATH/', datatype='npy', cell_idx = 0, start_block=0, clust_idx = 0, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[])`
-### Parameters
-- datafile: Path to the clustering output, in string format
+### <a id="init-params"></a>Parameters 
+- datafile: Path to the clustering output, in string format. IF YOU USED PHY (and split clusters), MAKE SURE THIS IS THE FINAL FOLDER
 - rawdatadir: Path to the sleep-wake data if you have it. Keep the default to False if you don't have this information
 - datatype: type of files found in the path. Defaults to 'npy', the datatype for WashU data
 - cell_idx: Cluster number relative to the total number of clusters found. Different from cluster index.
@@ -118,6 +122,19 @@ Common Warnings and Errors
 
 #### `Index out of bounds exception`
 - This is most likely due to inputting a probe number that is too large when looking at Multi-Probe Data
+
+# MakeFileList
+
+# load_clusters
+
+This function takes in parameters that will be passed into neuron_class. (See that [documentation](#init-parameters) for explanation of the variables)
+1. Filter: A list of qualities that should be loaded. For example if you entered [1,3] only cells of qualities 1 and 3 will be loaded (ignores noise).
+#### Return
+This function returns a list of neurons that passed the specified filter
+
+# scrubClusters
+
+
 
 
 

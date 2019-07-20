@@ -10,7 +10,7 @@ from traits.api import HasTraits, Str, Enum, Range, Directory
 from traitsui.api import View, Item, Handler
 import pdb
 
-def connectclusterdb (usr, pwd):
+def connectclusterdb (user, pwd):
     ''' CONNECTCLUSTERDB. Connect to the clusteringdb database.
     Inputs:
         USER: username
@@ -27,10 +27,11 @@ def connectclusterdb (usr, pwd):
     # connect to the clustering database
     # pwd = "%6m5kq2FymMXy5t3"
     # usr = "root"
-    db = pymysql.connect(user   = usr,
+    db = pymysql.connect(user   = user,
                                 passwd  = pwd,
                                 host    = "localhost",
                                 database= "clusteringdb")
+
 
     return db.cursor(), db
 
@@ -80,7 +81,7 @@ def createclusterstable(cursor,db):
     '''Create the clusters table. This should NOT be used except during development.
     May be called after the deltable function. '''
 
-    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t SMALLINT, half_width SMALLINT, slope_falling MEDIUMINT, mean_amplitude SMALLINT, fr SMALLINT, cluster_number SMALLINT, duration SMALLINT, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, tracklinks VARCHAR(255), block_label VARCHAR(255), folder_location VARCHAR(255) )" )
+    cursor.execute( "CREATE TABLE clusters ( quality TINYINT, neg_pos_t DOUBLE, half_width DOUBLE, slope_falling DOUBLE, mean_amplitude DOUBLE, fr DOUBLE, cluster_number INT, duration DOUBLE, clustering_t0 VARCHAR(255), algorithm VARCHAR(255), implant_id INTEGER, tracklinks VARCHAR(255), block_label VARCHAR(255), folder_location VARCHAR(255) )" )
 
     # add a column for cluster barcodes and make it the primary key and make it first.
     cursor.execute("ALTER TABLE clusters ADD COLUMN barcode DOUBLE NOT NULL AUTO_INCREMENT PRIMARY KEY FIRST")
@@ -90,8 +91,13 @@ def createclusterstable(cursor,db):
     print('Created table "clusters" in the {} database'.format(db.db))
 
 def resetfordev():
-    '''Quickly clear and recreate the tables during development. '''
-    cursor,db = connectclusterdb ('root','%6m5kq2FymMXy5t3')
+    '''
+        Quickly clear and recreate the tables during development.
+
+        CANT RUN AS A FUNCTION. RUN LINE BY LINE
+
+    '''
+    cursor,db = connectclusterdb ('root','N3tw0rksS!')
     cursor.execute("SHOW TABLES")
     cursor.fetchall()
     cursor.execute("DROP TABLE clusters")
@@ -371,7 +377,7 @@ def submit_implant(g,cursor,db):
     # write to a pandas dataframe, use this to write to a .csv file easily.
     df = pd.DataFrame.from_dict(data=target_val_pair, orient='index')
     fn = g.masterpath + '/' + g.animalid + '_' + g.region + '_' + str(g.nsites) + '_sites.csv'
-    (pd.DataFrame.from_dict(data=target_val_pair, orient='index').to_csv(fn, header=False))
+    pd.DataFrame.from_dict(data=target_val_pair, orient='index').to_csv(fn, header=False)
     print('Wrote implant information to .csv file  {}'.format(fn))
 
     return uniqueid, g.changroup, g.masterpath
@@ -437,10 +443,15 @@ def cluststats(blocklabel, uniqid, clustdir):
         DF: A pandas dataframe containing all of the cluster metadata. This
             *should* typically be passed to SUBMITCLUSTERS.
         '''
+
     # extract the clustering algorithm
+
+    #uncomment this once it does live but for now this is erroring on other things, so i'm hardcoding ks2 as the algorithm
     f = open(blocklabel + 'algorithm.txt','r')
     clustal = f.readlines()[0]
     f.close()
+
+
     # figure out t0 for the block in YYMMDD_HHMMSS
     unders = [i for i, letter in enumerate(blocklabel) if letter == '_']
     t0 = blocklabel[unders[1]+1:unders[3]]
@@ -542,79 +553,103 @@ def upload_implant(user,pwd):
         DB: Database connection.
         '''
     #connect to the clusteringdb
-    # pwd = "%6m5kq2FymMXy5t3"
-    # usr = "root"
-    cursor, db = connectclusterdb (user, pwd)
-    # call the implant info GUI and collect relevant information.
-    g = __implantgui()
-    # format and pass information from GUI to the implant_db table
-    uniqueid, chgroup, mpath = submit_implant(g,cursor,db)
-    # crawl through the clustering output and create entries in the clusters table
-    # that correspond to the uniqueid of the implant submitted by the user.
-    clustercrawl(mpath,uniqueid,chgroup,cursor,db)
 
+    try:
+        cursor, db = connectclusterdb (user, pwd)
+        # call the implant info GUI and collect relevant information.
+        g = __implantgui()
+        # format and pass information from GUI to the implant_db table
+        uniqueid, chgroup, mpath = submit_implant(g,cursor,db)
+        # crawl through the clustering output and create entries in the clusters table
+        # that correspond to the uniqueid of the implant submitted by the user.
+        clustercrawl(mpath,uniqueid,chgroup,cursor,db)
+    except:
+        print("there was an error uploading this clustering data, make sure your information is accurate")
+        print("deleting this implant information")
+        query = 'SELECT * FROM implant_db ORDER BY implant_id DESC LIMIT 1'
+        cursor.execute(query)
+        id = cursor.fetchall()[0]
+        id=id[0]
+        query = 'DELETE FROM implant_db WHERE implant_db.implant_id = {}'.format(id)
+        cursor.execute(query)
     db.close()
     cursor.close()
-
 
 
 
     # LINK THIS TO BUILDING NEURON CLASS INSTANCES
     # WRITE TOOLS FOR DELETING ITEMS FROM THE DATABASE (SEARCH, RETURN BARCODES, DELETE THOSE)
 
-def searchclusters():
+def search_clusters(user, pwd, query):
     # WRITE A SUITE OF TOOLS FOR SEARCHING AND RETURNING ITEMS IN THE DATABASES
     # Create a connection object
-    cursor,db = connectclusterdb ('root','%6m5kq2FymMXy5t3')#cursorclass = pymysql.cursors.DictCursor)
+    cursor, db = connectclusterdb(user,
+                                  pwd)  # cursorclass = pymysql.cursors.DictCursor) # need to not hard code this
+    print('press enter')
+    while(True):
+        # query = (
+        #         " SELECT clusters.barcode FROM clusters JOIN implant_db ON "
+        #         "clusters.implant_id = implant_db.implant_id WHERE "
+        #         "clusters.mean_amplitude > 10 AND clusters.slope_falling > 0 "
+        #         " AND implant_db.species = 'rat' AND implant_db.region IN ('CA1','HC') "
+        #         )
+        # query = (
+        #     " SELECT clusters.slope_falling FROM clusters JOIN implant_db ON "
+        #     "clusters.implant_id = implant_db.implant_id WHERE "
+        #     "implant_db.animal_id = 'Test4'"
+        # )
+        temp = input('')
+        cursor.execute(query)
+        records = cursor.fetchall()
 
-    query = (
-            " SELECT clusters.barcode FROM clusters JOIN implant_db ON "
+        # unpack records into a list then a string.
+        res = [rec for rec, in records]
+        npres = np.array(res)
+        res2 = ", ".join(str(x) for x in res)
+        nclusts = len(npres)
+        if nclusts == 0:
+            print('Your search returned no results')
+            refine = input('Would you like to refine your search? (y/n)')
+            if refine == 'y':
+                print('here was your last query:\n{}\ncopy it, edit it, and paste it back here.'.format(query))
+                query = input('refined query: ')
+            else:
+                break
+        else:
+            query_stats = ('SELECT implant_db.animal_id, implant_db.region, clusters.quality FROM clusters JOIN implant_db ON '
             "clusters.implant_id = implant_db.implant_id WHERE "
-            "clusters.mean_amplitude > 10 AND clusters.slope_falling > 0 "
-            " AND implant_db.species = 'rat' AND implant_db.region IN ('CA1','HC') "
-            )
+            "clusters.barcode IN ({})".format(res2))
+            cursor.execute(query_stats)
+            result = cursor.fetchall()
+            animals = np.unique([x[0] for x in result])
+            animals = ', '.join(animals)
+            regions = np.unique([x[1] for x in result])
+            regions = ', '.join(regions)
+            qualities = np.array([x[2] for x in result])
+            quals = np.zeros(4)
+            quals[1] = len(np.where(qualities==1)[0])
+            quals[2] = len(np.where(qualities==2)[0])
+            quals[3] = len(np.where(qualities==3)[0])
 
-    cursor.execute(query)
-    ## fetching all records from the 'cursor' object
-    records = cursor.fetchall()
-    for record in records:
-        print(record)
+            print('{} clusters were found in this search: \n\tAnimals: {}\n\tBrain regions: {}\n'
+            'Quality Stats:\n\tNumber of quality 1 clusters: {}\n\tNumber of quality 2 clusters: {}\n\tNumber of quality 3 clusters:{}'.format(nclusts, animals, regions,quals[1], quals[2], quals[3]))
 
-    # unpack records into a list then a string.
-    res = [rec for rec, in records]
-    res2 = ", ".join(str(x) for x in res)
+            refine = input('Would you like to refine your search?')
+            if refine == 'y':
+                print('here was your last query:\n{}\ncopy it, edit it, and paste it back here.'.format(query))
+                query = input('refined query: ')
+            else:
+                neurons = input('Do you want to create neuron objects from these clusters?')
+                # things that need to go into the dataframe. animal name. brain region. where to find the file. type of electrode. chan group.
 
+                q = ('SELECT clusters.folder_location, clusters.block_label, implant_db.electrode, implant_db.headstage, implant_db.changroup, clusters.cluster_number FROM clusters JOIN implant_db ON '
+                "clusters.implant_id = implant_db.implant_id WHERE "
+                "clusters.barcode IN ({})".format(res2))
 
-    query = "  SELECT implant_db.animal_id FROM clusters JOIN implant_db ON clusters.implant_id = implant_db.implant_id WHERE clusters.barcode IN ({}) ".format(res2)
-
-    query = 'INSERT INTO implant_db ({}) VALUES ({})'.format(cols, placeholders)
-# # "where" search:
-    # query = "SELECT barcode FROM clusters WHERE mean_amplitude > 10 AND clusters.implant_id = implant_db.implant_id )  "
-    # records = cursor.fetchall()
-    #
-    #
-    #
-    #
-    # (SELECT salesman_id
-    #  FROM salesman
-    #  WHERE name='Paul Adam');
-    #
-    #
-    #
-    # # SHOW  RECORDS IN TABLE - - - - - - - - - - -
-    # retreive one column only
-    query = "SELECT quality FROM clusters"
-    # retreive all columns
-    query = "SELECT * FROM implant_db"
-    #retrieve some columns
-    query = "SELECT quality, mean_amplitude FROM clusters"
-    # show the column np_samples
-    query = "DESCRIBE clusters"
-    ## getting records from the table
-    cursor.execute(query)
-    ## fetching all records from the 'cursor' object
-    records = cursor.fetchall()
-    ## Showing the data
-    for record in records:
-        print(record)
-    # - - - - - - - - - - - - - - - - - - - - - - - - -
+                cursor.execute(q)
+                r = cursor.fetchall()
+                r = list(r)
+                result = list(result)
+                dat_list = np.concatenate((result, r), axis = 1)
+                df = pd.DataFrame(dat_list, columns = ['animal_id', 'region', 'quality', 'folder_location', 'block_label', 'electrode','hstype', 'chan_group', 'cluster_number'])
+                return neurons, df
