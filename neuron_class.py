@@ -194,11 +194,10 @@ class neuron(object):
                     self.waveform = temp
 
                 if len(glob.glob('*mean_waveform.npy')) > 0:
-                    print("fix this")
-                    # print('taking mean amplitude from mean waveform')
-                    # mean_waveform = load_files(glob.glob('*mean_waveform.npy'))[0]
-                    # mean_waveform = mean_waveform[clust_idx]
-                    # self.mean_amplitude = np.abs(np.amin(mean_waveform))
+                    print('taking mean amplitude from mean waveform')
+                    mean_waveform = load_files(glob.glob('*mean_waveform.npy'))[start_block]
+                    mean_waveform = mean_waveform[clust_idx]
+                    self.mean_amplitude = np.abs(np.amin(mean_waveform))
 
                 # do quality stuff
                 scrubbed_files = glob.glob(f'scrubbed_quality_{start_block}.npy')
