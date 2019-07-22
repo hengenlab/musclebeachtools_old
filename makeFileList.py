@@ -135,13 +135,13 @@ def makeFileList(datadir, file_startclust, rawdatadir=False, multi_probe = False
         hour_list = np.sort(hour_list)
         start_hour = math.floor(cluster_time/3600)
         these_hours = hour_list[np.where(hour_list >= start_hour)[0]]
-        if np.size(these_hours) > numHrs:
-            these_hours = these_hours[:24]
         contcheck = np.unique(np.diff(these_hours))
         if np.size(contcheck) > 1:
             ('sleep state hours are not continuous, taking only continuous ones')
             stop = np.where(np.diff(these_hours) != 1)[0][0]
             these_hours = these_hours[:stop]
+        if np.size(these_hours) > numHrs:
+            these_hours = these_hours[:numHrs]
         sleepFiles=[]
         for i in these_hours:
             sf = baseName+str(i)+'.npy'
@@ -157,7 +157,7 @@ def makeFileList(datadir, file_startclust, rawdatadir=False, multi_probe = False
             t = np.stack((timestamps,s))
             sleep_states = np.concatenate((sleep_states,t), axis =1)
             last = idx
-        ss_datstart = these_hours[0]*3600
+        ss_datstart = (these_hours[0]-1)*3600
         ss_offset = ss_datstart-cluster_time
         sleep_states[0] = sleep_states[0]+ss_offset
         null_idx = np.where(sleep_states[0]<0)[0]
