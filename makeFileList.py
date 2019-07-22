@@ -4,7 +4,7 @@ import glob
 import math
 import neuraltoolkit as ntk 
 
-def makeFileList(datadir, file_startclust, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
+def makeFileList(datadir, file_startclust = False, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
     """
     sorts and loads all the files in a directory in the same way that neuon_class does
     then puts each loaded array into a list and returns that list
