@@ -4,7 +4,7 @@ from .nrn_network import *
 from .FScellproject import *
 from .stats import *
 #from .spikeword_tools import *
-#from .database import *
+from .database import *
 from .makeFileList import *
 from .load_clusters import *
 from .bin_FR_mat import *
