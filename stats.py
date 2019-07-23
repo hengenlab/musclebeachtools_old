@@ -1,11 +1,14 @@
 import pandas as pd
 import numpy as np
-from scipy import stats
+from scipy import stats as scstats
 import pdb
 from itertools import combinations as comb
 
 def rmANOVA(df, alpha = 0.05):
-    '''Code is taken directly from: http://pythonpsychologist.tumblr.com/post/139246503057/repeated-measures-anova-using-python on 05/17/2018 and transcribed [and edited where necessary] by KBH. Your pandas dataframe should be organized as follows (Subid is subject code, Xn are measurements):
+    '''Code is taken directly from:
+    http://pythonpsychologist.tumblr.com/post/139246503057/repeated-measures-anova-using-python
+    on 05/17/2018 and transcribed [and edited where necessary] by KBH.
+    Your pandas dataframe should be organized as follows (Subid is subject code, Xn are measurements):
                  Subid  X1  X2  X3
              0      1   6   8  10
              1      2   4   5   6
@@ -69,7 +72,7 @@ def rmANOVA(df, alpha = 0.05):
     F = msbetween/mserror
 
     #By using SciPy we can obtain a p-value. We start by setting our alpha to .05 and then we get our p-value.
-    p_value = stats.f.sf(F, 2, dferror)
+    p_value = scstats.f.sf(F, 2, dferror)
 
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
@@ -85,7 +88,7 @@ def rmANOVA(df, alpha = 0.05):
         icount = 0
         for i in pairs:
             # just run t tests and correct for multiple comparisons. Post hocs don't apply very well to rmANOVA
-            st, pval    = stats.ttest_rel(df[i[0]], df[i[1]])
+            st, pval    = scstats.ttest_rel(df[i[0]], df[i[1]])
 
             # correct for multiple comparisons
             pv[icount]  = pval*np.shape(pairs)[0]
