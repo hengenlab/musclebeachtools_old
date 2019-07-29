@@ -65,7 +65,6 @@ class neuron(object):
                 except FileNotFoundError:
                     print("*** Data File does not exist *** check the path")
                     return
-            spikefiles = pull_files('*spike_times*') # for file name purposes
             files_present = []
             if len(file_list)>0: #if there is a file list load the files from that
                 dat = file_list[9]
@@ -95,7 +94,7 @@ class neuron(object):
                 for f in possible_files:
                     g = glob.glob('*{}*'.format(f))
                     dat[f] = len(g) > 0
-                   
+                spikefiles = pull_files('*spike_times*')  # for file name purposes
                 clustfiles = pull_files('*spike_clusters*')
                 peakfiles = pull_files('*peak*', also = '*max_channel*')
                 templatefiles = pull_files('*waveform.npy')
@@ -136,6 +135,7 @@ class neuron(object):
                 except IndexError:
                     print("files do not exist for that day range")
 
+            spikefiles = pull_files('*spike_times*') # for file name purposes
             startTimeIndex = [b.find("times_") + 6 for b in block_labels]
             if startTimeIndex == -1:
                 startTimeIndex = [b.find("fs") + 2 for b in block_labels]
