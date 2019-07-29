@@ -79,7 +79,7 @@ class neuron(object):
                     qual_array = file_list[5]
                 if dat['amplitudes']:
                     amps = file_list[4]
-                block_labels = [file_list[10]]
+                block_labels = file_list[10]
 
             else: # load the files manually
                 # SORTS DATA FILES
@@ -149,7 +149,7 @@ class neuron(object):
             self.ecube_end_time = [int(b[endTimeIndexStart[i]: endTimeIndexEnd[i]]) for i, b in enumerate(block_labels)]
             self.clocktime_start_time = [b[clocktimeSIdx[i]: clocktimeEIdx[i]] for i, b in enumerate(block_labels)]
 
-            lengths = [self.ecube_start_time[i] - self.ecube_end_time[i] for i in range(block_labels)]
+            lengths = [self.ecube_end_time[i] - self.ecube_start_time[i] for i,b in enumerate(block_labels)]
             lengths = np.insert(lengths, 0, 0)
 
 

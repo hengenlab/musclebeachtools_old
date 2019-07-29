@@ -176,7 +176,8 @@ def makeFileList(datadir, file_startclust = False, rawdatadir=False, multi_probe
 
     unique_clusters = np.unique(curr_clust)
 
-    block_label = spikefiles[0][:spikefiles[0].find('spike')]
+    block_label = [i[:i.find('spike')] for i in spikefiles]   # line to fix in makeFileList
+
     file_list[10]=block_label
 
     print("Data set information: \nThis clustering output contains:")
