@@ -79,7 +79,7 @@ class neuron(object):
                     qual_array = file_list[5]
                 if dat['amplitudes']:
                     amps = file_list[4]
-                block_labels = file_list[10]
+                block_labels = [file_list[10]]
 
             else: # load the files manually
                 # SORTS DATA FILES
