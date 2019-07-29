@@ -42,11 +42,13 @@ class neuron(object):
         def load_files(files):
             '''
             :param files: list of file names
-            :return: the loaded file
+            :return: the loaded file(s)
             '''
             return [np.load(files[i]) for i in range(start_block, end_block)]
 
         if datatype == 'npy': # washU data
+
+
 
             print('You are using WashU data')
             if not clust_idx:
@@ -63,7 +65,7 @@ class neuron(object):
                 except FileNotFoundError:
                     print("*** Data File does not exist *** check the path")
                     return
-
+            spikefiles = pull_files('*spike_times*') # for file name purposes
             files_present = []
             if len(file_list)>0: #if there is a file list load the files from that
                 dat = file_list[9]
@@ -78,7 +80,7 @@ class neuron(object):
                     qual_array = file_list[5]
                 if dat['amplitudes']:
                     amps = file_list[4]
-                block_label = file_list[10]
+                block_labels = file_list[10]
 
             else: # load the files manually
                 # SORTS DATA FILES
@@ -94,7 +96,6 @@ class neuron(object):
                     g = glob.glob('*{}*'.format(f))
                     dat[f] = len(g) > 0
                    
-                spikefiles = pull_files('*spike_times*')
                 clustfiles = pull_files('*spike_clusters*')
                 peakfiles = pull_files('*peak*', also = '*max_channel*')
                 templatefiles = pull_files('*waveform.npy')
@@ -102,42 +103,122 @@ class neuron(object):
                 ampfiles = pull_files('*amplitudes*')
                 splinefiles = pull_files('*spline*')
 
-                block_label = spikefiles[0][:spikefiles[0].find('spike')]
+                block_labels = [i[:i.find('spike')] for i in spikefiles] # block labels from all blocks
+
 
                 dat['max_channel'] = len(peakfiles) > 0
-                length = np.zeros(end_block) # this will be necessary later with tracking but done differently
 
                 # LOADS DATA
                 try:
                     print("Loading files...")
 
-                    curr_clust = load_files(clustfiles)[0]
-                    curr_spikes = load_files(spikefiles)[0]
+                    curr_clust = load_files(clustfiles)
+                    curr_spikes = load_files(spikefiles)
                     if dat['max_channel']:
-                        peak_ch = load_files(peakfiles)[0]
+                        peak_ch = load_files(peakfiles)
                         files_present.append('max/peak channels')
                     if dat['spline']:
-                        templates = load_files(splinefiles)[0]
+                        templates = load_files(splinefiles)
                         files_present.append('spine waveform *yea fix this theres definitly a better name for this')
                     elif dat['waveform']:
                         if len(glob.glob('*mean_waveform.npy')) > 0:
-                            templates = load_files(glob.glob('*mean_waveform.npy'))[0]
+                            templates = load_files(glob.glob('*mean_waveform.npy'))
                             files_present.append('mean waveform')
                         else:
-                            templates = load_files(templatefiles)[0]
+                            templates = load_files(templatefiles)
                             files_present.append('template waveform')
                     if dat['qual']:
-                        qual_array = load_files(qual)[0]
+                        qual_array = load_files(qual)
                         files_present.append('automated cluster quality')
                     if dat['amplitudes']:
-                        amps = load_files(ampfiles)[0]
+                        amps = load_files(ampfiles)
                         files_present.append('amplitudes')
                 except IndexError:
                     print("files do not exist for that day range")
 
+            startTimeIndex = [b.find("times_") + 6 for b in block_labels]
+            if startTimeIndex == -1:
+                startTimeIndex = [b.find("fs") + 2 for b in block_labels]
+            startTimeIndexEnd = [b.find("-timee_") for b in block_labels]
+            endTimeIndexStart = [b.find("-timee_") + 7 for b in block_labels]
+            endTimeIndexEnd = [b.find("_length") for b in block_labels]
+            if startTimeIndexEnd == -1:
+                startTimeIndexEnd = [b.find("-fs") for b in block_labels]
+            clocktimeSIdx = [b.find("int16_") + 6 for b in block_labels]
+            clocktimeEIdx = [b.find('-P') - 1 for b in block_labels]
+            self.ecube_start_time = [int(b[startTimeIndex[i]: startTimeIndexEnd[i]]) for i, b in enumerate(block_labels)]
+            self.ecube_end_time = [int(b[endTimeIndexStart[i]: endTimeIndexEnd[i]]) for i, b in enumerate(block_labels)]
+            self.clocktime_start_time = [b[clocktimeSIdx[i]: clocktimeEIdx[i]] for i, b in enumerate(block_labels)]
+
+            lengths = [self.ecube_start_time[i] - self.ecube_end_time[i] for i in range(block_labels)]
+            lengths = np.insert(lengths, 0, 0)
+
+
             if end_block-start_block > 1:
                 print("this cannot be done yet")
+                self.unique_clusters = [np.unique(curr_clust[i]) for i in range(start_block, end_block)]
+                if not clust_idx: #establish both cluster and cell index if only one was given
+                    clust_idx = self.unique_clusters[0][int(cell_idx)]
+                    self.clust_idx = clust_idx
+                    self.cell_idx = cell_idx
+                else:
+                    clust_idx=int(clust_idx)
+                    cell_idx = np.where(self.unique_clusters[0] == clust_idx)[0]
+                    cell_idx = cell_idx[0]
+                    self.clust_idx = clust_idx
+                    self.cell_idx = cell_idx
                 # Tracking
+                total_keys = np.load(block_labels[0] + 'keys.npy')
+                KEYS = total_keys[clust_idx]
+
+                # make instance variables from this
+                peak_channel = np.zeros(end_block-start_block)
+                neg_pos_time = np.zeros(end_block-start_block)
+                mean_amplitude = np.zeros(end_block-start_block)
+                waveform = list(np.zeros(end_block-start_block))
+                spike_times = list(np.zeros(end_block - start_block))
+                for d in np.arange(end_block-start_block):
+                    temp_idx = int(KEYS[d]-1)
+
+                    if temp_idx == '0':
+                        print(f'this cluster was not found on block {d} of the {end_block - start_block} you are loading')
+                    else:
+                        if dat['max_channel']:
+                            peak_channel[d] = peak_ch[d][temp_idx]
+                        if dat['waveform']:
+                            temp = templates[d][temp_idx]
+                            bottom = np.argmin(temp)
+                            top = np.argmax(temp[bottom:]) + bottom
+                            np_samples = top - bottom
+                            seconds_per_sample = 1 / fs
+                            ms_per_sample = seconds_per_sample * 1e3
+                            neg_pos_time[d] = np_samples * ms_per_sample
+                            mean_amplitude[d] = np.abs(np.amin(temp))
+
+                            # in the future it might be good to later take the mean neg_pos and do cell type from that but lets go with this for now
+                            if neg_pos_time[d] >= 0.4:
+                                self.cell_type = 'RSU'
+                            if neg_pos_time[d] < 0.4:
+                                self.cell_type = 'FS'
+                            waveform[d] = temp
+                        if len(glob.glob('*mean_waveform.npy')) > 0:
+                            print('taking mean amplitude from mean waveform')
+                            mean_waveform = load_files(sorted(glob.glob('*mean_waveform.npy')))[d]
+                            mean_waveform = mean_waveform[clust_idx]
+                            mean_amplitude[d] = np.abs(np.amin(mean_waveform))
+
+                        # SPIKE STUFF
+                        spk_idx = np.where(curr_clust[d] == temp_idx)[0]
+                        spike_times[d] = curr_spikes[d][spk_idx] / fs
+                        spike_times[d] = spike_times[d] + int(lengths[d])
+                self.peak_channel = peak_channel
+                self.neg_pos_time = neg_pos_time
+                self.mean_amplitude = mean_amplitude
+                self.waveform = waveform
+                self.spike_times = spike_times
+
+
+                #offset is going to be the difference in the ecube time in the block_labels
                 # use keys to find cluster index for that block
 
                 # find the time of the overlap
@@ -195,7 +276,7 @@ class neuron(object):
 
                 if len(glob.glob('*mean_waveform.npy')) > 0:
                     print('taking mean amplitude from mean waveform')
-                    mean_waveform = load_files(glob.glob('*mean_waveform.npy'))[start_block]
+                    mean_waveform = load_files(sorted(glob.glob('*mean_waveform.npy')))[0]
                     mean_waveform = mean_waveform[clust_idx]
                     self.mean_amplitude = np.abs(np.amin(mean_waveform))
 
@@ -268,16 +349,6 @@ class neuron(object):
                 self.behavior = file_list[7]
             #TIME STUFF
 
-            startTimeIndex = block_label.find("times_") + 6
-            if startTimeIndex == -1:
-                startTimeIndex = block_label.find("fs") + 2
-            startTimeIndexEnd = block_label.find("-timee_")
-            if startTimeIndexEnd == -1:
-                startTimeIndexEnd = block_label.find("-fs")
-            clocktimeSIdx = block_label.find("int16_") + 6
-            clocktimeEIdx = block_label.find('-P')-1
-            self.ecube_start_time = int(block_label[startTimeIndex: startTimeIndexEnd])
-            self.clocktime_start_time = block_label[clocktimeSIdx: clocktimeEIdx]
             self.start_block = start_block
             self.end_block = end_block
 
