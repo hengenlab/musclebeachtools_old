@@ -135,7 +135,6 @@ class neuron(object):
                 except IndexError:
                     print("files do not exist for that day range")
 
-            spikefiles = pull_files('*spike_times*') # for file name purposes
             startTimeIndex = [b.find("times_") + 6 for b in block_labels]
             if startTimeIndex == -1:
                 startTimeIndex = [b.find("fs") + 2 for b in block_labels]
