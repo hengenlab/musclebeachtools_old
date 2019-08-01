@@ -352,6 +352,7 @@ class neuron(object):
             self.end_block = end_block
 
             self.directory = datadir
+            self.probe_number = probenumber
 
             if len(file_list) == 0:
                 print("Data set information: \nThis clustering output contains:")
