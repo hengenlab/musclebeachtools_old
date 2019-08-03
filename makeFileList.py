@@ -4,7 +4,7 @@ import glob
 import math
 import neuraltoolkit as ntk 
 
-def makeFileList(datadir, file_startclust = False, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000):
+def makeFileList(datadir, file_startclust = False, rawdatadir=False, multi_probe = False, start_block = 0, end_block = 1, probeNumber = False, fs = 25000, tracked = False):
     """
     sorts and loads all the files in a directory in the same way that neuon_class does
     then puts each loaded array into a list and returns that list
@@ -79,7 +79,7 @@ def makeFileList(datadir, file_startclust = False, rawdatadir=False, multi_probe
 
     spikefiles = pull_files('*spike_times*')
     clustfiles = pull_files('*spike_clusters*')
-    peakfiles = pull_files('*peak*', also = '*max_channel*')
+    peakfiles = pull_files('*max_channel*')
     templatefiles = pull_files('*waveform.npy')
     qual = pull_files('*qual*', butNot = '*scrubbed*')
     ampfiles = pull_files('*amplitudes*')
@@ -90,33 +90,33 @@ def makeFileList(datadir, file_startclust = False, rawdatadir=False, multi_probe
 
     try: # LOADS DATA
         print("Loading files...")
-        curr_clust = load_files(clustfiles)[0]
+        curr_clust = load_files(clustfiles)
         file_list[0] = curr_clust
-        curr_spikes = load_files(spikefiles)[0]
+        curr_spikes = load_files(spikefiles)
         file_list[1] = curr_spikes
         if dat['max_channel']:
-            peak_ch = load_files(peakfiles)[0]
+            peak_ch = load_files(peakfiles)
             file_list[2] = peak_ch
             files_present.append('max/peak channels')
         if dat['spline']:
-            templates = load_files(splinefiles)[0]
+            templates = load_files(splinefiles)
             file_list[3] = templates
             files_present.append('smoothed waveform')
         elif dat['waveform']:
             if len(glob.glob('*mean_waveform.npy')) > 0:
-                templates = load_files(glob.glob('*mean_waveform.npy'))[0]
+                templates = load_files(glob.glob('*mean_waveform.npy'))
                 file_list[3] = templates
                 files_present.append('mean waveform')
             else:
-                templates = load_files(templatefiles)[0]
+                templates = load_files(templatefiles)
                 file_list[3] = templates
                 files_present.append('template waveform')
         if dat['qual']:
-            qual_array = load_files(qual)[0]
+            qual_array = load_files(qual)
             file_list[5] = qual_array
             files_present.append('automated cluster quality')
         if dat['amplitudes']:
-            amps = load_files(ampfiles)[0]
+            amps = load_files(ampfiles)
             file_list[4] = amps
             files_present.append('amplitudes')
     except:
@@ -174,16 +174,19 @@ def makeFileList(datadir, file_startclust = False, rawdatadir=False, multi_probe
     clocktimeEIdx = spikefiles[0].find('-P') - 1
     clocktime_start_time = spikefiles[0][clocktimeSIdx: clocktimeEIdx]
 
-    unique_clusters = np.unique(curr_clust)
+    if (end_block - start_block) > 1:
+        keys = np.load(glob.glob('*keys*')[0])
+        unique_clusters = np.unique(np.where(keys!=0)[0])
+    else:
+        unique_clusters = np.unique(curr_clust[0])
 
-    block_label = [i[:i.find('spike')] for i in spikefiles]   # line to fix in makeFileList
-
+    block_label = [i[:i.find('spike')] for i in spikefiles]
     file_list[10]=block_label
 
     print("Data set information: \nThis clustering output contains:")
     s = '\t' + files_present[0]
     for f in files_present[1:]:
         s += '\n\t{}'.format(f)
-    print(s + '\nRecording started at: {} \nNumber of clusters: {}'.format(clocktime_start_time,
+    print(s + '\nRecording started at: {} \nMinimum number of clusters: {}'.format(clocktime_start_time,
                                                                            len(unique_clusters)))
     return file_list

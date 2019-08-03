@@ -25,20 +25,8 @@ class neuron(object):
            :param fs: sampling rate
            :param file_list: a list returned by the makeFileList() function. If loading more than one cell use this function to avoid loading the same file multiple times, makes the code much faster.
     """
-    def __init__(self, datadir, rawdatadir=False, datatype= 'npy', cell_idx = 0, start_block=0, clust_idx = False, end_block=1, multi_probe=False, probenumber=1, fs=25000, file_list=[]):
+    def __init__(self, datadir, file_list,  start_block, end_block, rawdatadir=False, datatype= 'npy', cell_idx = 0, clust_idx = False, probenumber=1, fs=25000, tracked = False):
 
-        def pull_files(fileName, also = None, butNot = None):
-            '''
-            :param fileName: wildcard name of file to pull from directory
-            :param also: if there are more names to pull and save in the same list
-            :param butNot: if there is a type to discard from those names. for example 'scrubbed' could be discarded when pulling 'quality' to only pull the phy qual output
-            :return: list of file names
-            '''
-            if also is not None:
-                return [f for f in files_full if f in glob.glob(fileName) or f in glob.glob(also)]
-            if butNot is not None:
-                return [f for f in files_full if f in glob.glob(fileName) and f not in glob.glob(butNot)]
-            return [f for f in files_full if f in glob.glob(fileName)]
         def load_files(files):
             '''
             :param files: list of file names
@@ -47,9 +35,6 @@ class neuron(object):
             return [np.load(files[i]) for i in range(start_block, end_block)]
 
         if datatype == 'npy': # washU data
-
-
-
             print('You are using WashU data')
             if not clust_idx:
                 print('working on cell index '+str(cell_idx))
@@ -65,75 +50,20 @@ class neuron(object):
                 except FileNotFoundError:
                     print("*** Data File does not exist *** check the path")
                     return
-            files_present = []
-            if len(file_list)>0: #if there is a file list load the files from that
-                dat = file_list[9]
-                files_present = file_list[8]
-                print('using file list')
-                curr_clust = file_list[0]
-                curr_spikes = file_list[1]
-                if dat['max_channel']:
-                    peak_ch = file_list[2]
-                templates = file_list[3]
-                if dat['qual']:
-                    qual_array = file_list[5]
-                if dat['amplitudes']:
-                    amps = file_list[4]
-                block_labels = file_list[10]
-
-            else: # load the files manually
-                # SORTS DATA FILES
-                if multi_probe:
-                    ch = probenumber
-                    f   = "*chg_"+str(ch)+"*.npy"
-                    files_full = np.sort(glob.glob(f))
-                else:
-                    files_full = np.sort(glob.glob('*.npy'))
-                possible_files = ['amplitudes', 'waveform','qual', 'spline']
-                dat = {}
-                for f in possible_files:
-                    g = glob.glob('*{}*'.format(f))
-                    dat[f] = len(g) > 0
-                spikefiles = pull_files('*spike_times*')  # for file name purposes
-                clustfiles = pull_files('*spike_clusters*')
-                peakfiles = pull_files('*peak*', also = '*max_channel*')
-                templatefiles = pull_files('*waveform.npy')
-                qual = pull_files('*qual*', butNot = '*scrubbed*')
-                ampfiles = pull_files('*amplitudes*')
-                splinefiles = pull_files('*spline*')
-
-                block_labels = [i[:i.find('spike')] for i in spikefiles] # block labels from all blocks
 
 
-                dat['max_channel'] = len(peakfiles) > 0
+            dat = file_list[9]
+            files_present = file_list[8]
+            print('using file list')
+            curr_clust = file_list[0]
+            curr_spikes = file_list[1]
+            if dat['max_channel']:
+                peak_ch = file_list[2]
+            templates = file_list[3]
+            if dat['qual']:
+                qual_array = file_list[5]
 
-                # LOADS DATA
-                try:
-                    print("Loading files...")
-
-                    curr_clust = load_files(clustfiles)
-                    curr_spikes = load_files(spikefiles)
-                    if dat['max_channel']:
-                        peak_ch = load_files(peakfiles)
-                        files_present.append('max/peak channels')
-                    if dat['spline']:
-                        templates = load_files(splinefiles)
-                        files_present.append('spine waveform *yea fix this theres definitly a better name for this')
-                    elif dat['waveform']:
-                        if len(glob.glob('*mean_waveform.npy')) > 0:
-                            templates = load_files(glob.glob('*mean_waveform.npy'))
-                            files_present.append('mean waveform')
-                        else:
-                            templates = load_files(templatefiles)
-                            files_present.append('template waveform')
-                    if dat['qual']:
-                        qual_array = load_files(qual)
-                        files_present.append('automated cluster quality')
-                    if dat['amplitudes']:
-                        amps = load_files(ampfiles)
-                        files_present.append('amplitudes')
-                except IndexError:
-                    print("files do not exist for that day range")
+            block_labels = file_list[10]
 
             startTimeIndex = [b.find("times_") + 6 for b in block_labels]
             if startTimeIndex == -1:
@@ -171,17 +101,20 @@ class neuron(object):
                 KEYS = total_keys[clust_idx]
 
                 # make instance variables from this
-                peak_channel = np.zeros(end_block-start_block)
-                neg_pos_time = np.zeros(end_block-start_block)
-                mean_amplitude = np.zeros(end_block-start_block)
-                waveform = list(np.zeros(end_block-start_block))
-                spike_times = list(np.zeros(end_block - start_block))
+                peak_channel = np.full((end_block-start_block), np.nan)
+                neg_pos_time = np.full((end_block-start_block), np.nan)
+                mean_amplitude = np.full((end_block-start_block), np.nan)
+                waveform = list(np.full((end_block-start_block), np.nan))
+                spike_times = list(np.full((end_block - start_block), np.nan))
+                blocks = []
+
                 for d in np.arange(end_block-start_block):
                     temp_idx = int(KEYS[d]-1)
 
-                    if temp_idx == '0':
+                    if temp_idx == -1:
                         print(f'this cluster was not found on block {d} of the {end_block - start_block} you are loading')
                     else:
+                        blocks.append(d + start_block)
                         if dat['max_channel']:
                             peak_channel[d] = peak_ch[d][temp_idx]
                         if dat['waveform']:
@@ -207,15 +140,15 @@ class neuron(object):
                             mean_amplitude[d] = np.abs(np.amin(mean_waveform))
 
                         # SPIKE STUFF
+
                         spk_idx = np.where(curr_clust[d] == temp_idx)[0]
                         spike_times[d] = curr_spikes[d][spk_idx] / fs
-                        spike_times[d] = spike_times[d] + int(lengths[d])
+                        spike_times[d] = np.concatenate(spike_times[d] + int(lengths[d]))
                 self.peak_channel = peak_channel
                 self.neg_pos_time = neg_pos_time
                 self.mean_amplitude = mean_amplitude
                 self.waveform = waveform
-                self.spike_times = spike_times
-
+                self.time = spike_times
 
                 #offset is going to be the difference in the ecube time in the block_labels
                 # use keys to find cluster index for that block
@@ -228,6 +161,7 @@ class neuron(object):
 
 
             else:
+                blocks = start_block
                 # do peak stuff
                 if dat['max_channel']:
                     if np.size(np.where(peak_ch == -1)[0]) == 0:
@@ -274,47 +208,44 @@ class neuron(object):
                     self.waveform = temp
 
                 if len(glob.glob('*mean_waveform.npy')) > 0:
-                    print('taking mean amplitude from mean waveform')
                     mean_waveform = load_files(sorted(glob.glob('*mean_waveform.npy')))[0]
                     mean_waveform = mean_waveform[clust_idx]
                     self.mean_amplitude = np.abs(np.amin(mean_waveform))
 
                 # do quality stuff
-                scrubbed_files = glob.glob(f'scrubbed_quality_{start_block}.npy')
-                if len(scrubbed_files) > 0:
-                    scrubbed_qual_array = np.load(scrubbed_files[0])
-                    dat['scrubbed'] = True
-                else:
-                    scrubbed_quality = np.full(np.shape(self.unique_clusters), np.NaN)
-                    np.save(f'scrubbed_quality_{start_block}.npy', scrubbed_quality)
-                    self.scrubbed_qual_array = scrubbed_quality
-                    dat['scrubbed'] = False
-                if dat['qual']:
-                    if dat['scrubbed']:
-                        self.scrubbed_qual_array = scrubbed_qual_array
-                        last_idx = None
-                        for n in range(len(self.scrubbed_qual_array)):
-                            if np.isnan(self.scrubbed_qual_array[n]):
-                                last_idx = n
-                                break
-                        if last_idx is not None:
-                            print("First unscrubbed cell index: ", last_idx)
-                        if np.isnan(self.scrubbed_qual_array[cell_idx]):
-                            self.quality_array = qual_array
-                            self.quality = qual_array[clust_idx]
-                        else:
-                            self.quality = self.scrubbed_qual_array[cell_idx]
-                    else:
+            scrubbed_files = glob.glob(f'scrubbed_quality_{start_block}.npy')
+            if len(scrubbed_files) > 0:
+                scrubbed_qual_array = np.load(scrubbed_files[0])
+                dat['scrubbed'] = True
+            else:
+                scrubbed_quality = np.full(np.shape(self.unique_clusters), np.NaN)
+                np.save(f'scrubbed_quality_{start_block}.npy', scrubbed_quality)
+                self.scrubbed_qual_array = scrubbed_quality
+                dat['scrubbed'] = False
+            if dat['qual']:
+                if dat['scrubbed']:
+                    self.scrubbed_qual_array = scrubbed_qual_array
+                    last_idx = None
+                    for n in range(len(self.scrubbed_qual_array)):
+                        if np.isnan(self.scrubbed_qual_array[n]):
+                            last_idx = n
+                            break
+                    if last_idx is not None:
+                        print("First unscrubbed cell index: ", last_idx)
+                    if np.isnan(self.scrubbed_qual_array[cell_idx]):
                         self.quality_array = qual_array
                         self.quality = qual_array[clust_idx]
+                    else:
+                        self.quality = self.scrubbed_qual_array[cell_idx]
                 else:
-                    print("There is no quality rating for any of these cells. Run 'checkqual()' and change the save_update flag to True if you'd like to start a quality array")
-                    self.quality = 0
-                if dat['amplitudes']:
-                    # this is not correct bc phy is not correct for the amplitudes
-                    self.amplitudes = amps[spk_idx]
+                    self.quality_array = qual_array
+                    self.quality = qual_array[clust_idx]
+            else:
+                print("There is no quality rating for any of these cells. Run 'checkqual()' and change the save_update flag to True if you'd like to start a quality array")
+                self.quality = 0
 
             self._dat = dat
+            self.blocks = blocks
             self.onTime = np.array([self.time[0]])
             self.offTime = np.array([self.time[-1]])
             # SLEEP-WAKE
@@ -363,6 +294,18 @@ class neuron(object):
             if dat['qual']:
                 print(f'Cell quality: {self.quality}')
             print('\n')
+
+
+
+
+
+
+
+
+
+
+
+
 
         #Brandeis data
         else:
@@ -517,6 +460,7 @@ class neuron(object):
     def isi_hist(self, start = 0, end = False, isi_thresh = 0.1, nbins = 101):
         '''Return a histogram of the interspike interval (ISI) distribution. This is a method built into the class "neuron", so input is self (). This is typically used to evaluate whether a spike train exhibits a refractory period and is thus consistent with a single unit or a multi-unit recording. '''
         # For a view of how much this cell is like a "real" neuron, calculate the ISI distribution between 0 and 100 msec. This function will plot the bar histogram of that distribution and calculate the percentage of ISIs that fall under 2 msec.
+        time = np.concatenate(self.time)
         if end == False:
             end = max(self.time)
         idx = np.where(np.logical_and(self.time>=start, self.time<=end))[0]
@@ -900,7 +844,6 @@ class neuron(object):
         #QUALITY UPDATES
         flag = None
         while flag is None:
-            time.sleep(0.1)
             if g in (['1', '2', '3', '4']):
                 self.quality = g
                 #currently assuming there might not be a quality file
