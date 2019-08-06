@@ -36,7 +36,8 @@ add this line
 
 ### Dependencies
 Run the line below to install dependencies   
-`conda install ipython seaborn numpy scipy h5py colour`
+`conda install ipython seaborn numpy scipy h5py colour pymysql traits traitsui`   
+`conda install -c https://conda.binstar.org/menpo opencv`   
 
 ### Testing
 To test it open powershell/terminal  
