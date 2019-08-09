@@ -36,7 +36,7 @@ def load_clusters(datadir, filt, tracked = False, file_startclust = False,rawdat
                 qual_list = fileList[5][0]
 
             if qual_list[clust_idx] in filt:
-                neurons.append(mbt.neuron(datadir, rawdatadir, fileList, start_block, end_block, clust_idx = clust_idx))
+                neurons.append(mbt.neuron(datadir, fileList,  start_block=start_block, end_block=end_block, rawdatadir=rawdatadir, clust_idx = clust_idx, probenumber=probeNumber))
 
         # do the other cells that aren't in the key file
         for block in range(end_block - start_block):
@@ -46,7 +46,7 @@ def load_clusters(datadir, filt, tracked = False, file_startclust = False,rawdat
             for i, clust_idx in enumerate(clusters):
                 qual_list = fileList[5][block]
                 if qual_list[clust_idx] in filt:
-                    neurons.append(mbt.neuron(datadir, rawdatadir, clust_idx = clust_idx, start_block = block, end_block = block+1, file_list = fileList))
+                    neurons.append(mbt.neuron(datadir, fileList,  start_block=start_block, end_block=end_block, rawdatadir=rawdatadir, clust_idx = clust_idx, probenumber=probeNumber))
 
         return neurons
 
@@ -58,12 +58,12 @@ def load_clusters(datadir, filt, tracked = False, file_startclust = False,rawdat
             print(f'Here is the quality list (scrubbed): {qual_list}')
             for i, clust_idx in enumerate(unique_clusters):
                 if qual_list[i] in filt:
-                    neurons.append(mbt.neuron(datadir, rawdatadir, clust_idx = clust_idx, start_block = start_block, end_block = end_block, file_list = fileList))
+                    neurons.append(mbt.neuron(datadir, fileList,  start_block=start_block, end_block=end_block, rawdatadir=rawdatadir, clust_idx = clust_idx, probenumber=probeNumber))
             return neurons
         else:
-            qual_list = fileList[5]
+            qual_list = fileList[5][0]
             print(f'Here is the quality list: {qual_list}')
             for i, clust_idx in enumerate(unique_clusters):
                 if qual_list[clust_idx] in filt:
-                    neurons.append(mbt.neuron(datadir, rawdatadir, clust_idx = clust_idx, start_block = start_block, end_block = end_block, file_list = fileList))
+                    neurons.append(mbt.neuron(datadir, fileList,  start_block=start_block, end_block=end_block, rawdatadir=rawdatadir, clust_idx = clust_idx, probenumber=probeNumber))
             return neurons

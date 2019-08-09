@@ -162,6 +162,11 @@ class neuron(object):
 
             else:
                 blocks = start_block
+                peak_ch = peak_ch[0]
+                curr_clust = curr_clust[0]
+                curr_spikes = curr_spikes[0]
+                templates = templates[0]
+
                 # do peak stuff
                 if dat['max_channel']:
                     if np.size(np.where(peak_ch == -1)[0]) == 0:
@@ -232,14 +237,18 @@ class neuron(object):
                             break
                     if last_idx is not None:
                         print("First unscrubbed cell index: ", last_idx)
-                    if np.isnan(self.scrubbed_qual_array[cell_idx]):
-                        self.quality_array = qual_array
-                        self.quality = qual_array[clust_idx]
-                    else:
-                        self.quality = self.scrubbed_qual_array[cell_idx]
+                    try:
+                        if np.isnan(self.scrubbed_qual_array[cell_idx]):
+                            self.quality_array = qual_array[0]
+                            self.quality = qual_array[0][clust_idx]
+                        else:
+                            self.quality = self.scrubbed_qual_array[cell_idx]
+                    except:
+                        self.quality_array = qual_array[0]
+                        self.quality = qual_array[0][clust_idx]
                 else:
-                    self.quality_array = qual_array
-                    self.quality = qual_array[clust_idx]
+                    self.quality_array = qual_array[0]
+                    self.quality = qual_array[0][clust_idx]
             else:
                 print("There is no quality rating for any of these cells. Run 'checkqual()' and change the save_update flag to True if you'd like to start a quality array")
                 self.quality = 0
