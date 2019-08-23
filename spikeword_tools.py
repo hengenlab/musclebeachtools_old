@@ -91,7 +91,7 @@ def spiketimes_to_spikewords(spiketimes,startime,stoptime,binsize,binarize):
 	        counts[counts>0] = 1
         # print(counts.astype(np.int))
         spikewords_array[i,:] = counts
-    return(spikewords_array.astype(np.int).T)
+    return(spikewords_array.astype(np.int8).T)
 
 def spikeword_distributions(spikeword_array,save_output,spikewordfn):
 	print('CONVERTING SPIKE WORDS, COUNTING SPIKE WORDS')
