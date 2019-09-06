@@ -30,6 +30,7 @@ export PYTHONPATH=/location_of_musclebeachtools:$PYTHONPATH
 
 
 ### Testing
+#### Test import
 To test it open powershell/terminal  
     ipython  
     import musclebeachtools as mbt
