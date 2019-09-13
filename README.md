@@ -15,12 +15,9 @@ Enter your username and password
 cd locationofmusclebeachtools/musclebeachtools/  
 pip install .
 
-### Testing 
-To test it open powershell/terminal  
-    ipython  
-    import musclebeachtools as mbt
+
 ---
-### Just adding to path
+### Installation by adding to path
 
 ##### Windows
 My Computer > Properties > Advanced System Settings > Environment Variables >  
@@ -45,9 +42,9 @@ add this line
 export PYTHONPATH=/location_of_musclebeachtools:$PYTHONPATH
 
 
-### Testing
+---
 #### Test import
-To test it open powershell/terminal  
+Open powershell/terminal   
     ipython  
     import musclebeachtools.musclebeachtools as mbt
 ---
