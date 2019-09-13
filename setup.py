@@ -9,7 +9,7 @@ setup(
    description='This package used to analyze neuron data, from basic plotting\
                (ISI histograms, firing rate, cross corr), to hard core\
                computational work (ising models, branching ratios, etc).',
-   license="MIT",
+   license="",
    long_description=long_description,
    keywords='musclebeachtools, neuroscience, electrophysiology',
    package_dir={'musclebeachtools': 'musclebeachtools'},
