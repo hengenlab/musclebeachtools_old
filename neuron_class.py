@@ -112,7 +112,11 @@ class neuron(object):
                     temp_idx = int(KEYS[d]-1)
 
                     if temp_idx == -1:
-                        print(f'this cluster was not found on block {d} of the {end_block - start_block} you are loading')
+                        # print(f'this cluster was not found on block {d} of
+                        #       the {end_block - start_block} you are loading')
+                        print('This cluster was not found on block {:6d} of \
+                              the {:6d} you are loading'
+                              .format(d, (end_block-start_block)))
                     else:
                         blocks.append(d + start_block)
                         if dat['max_channel']:
@@ -218,13 +222,17 @@ class neuron(object):
                     self.mean_amplitude = np.abs(np.amin(mean_waveform))
 
                 # do quality stuff
-            scrubbed_files = glob.glob(f'scrubbed_quality_{start_block}.npy')
+            # scrubbed_files = glob.glob(f'scrubbed_quality_{start_block}.npy')
+            scrubbed_files = glob.glob('scrubbed_quality_{d}.npy'
+                                       .format(start_block))
             if len(scrubbed_files) > 0:
                 scrubbed_qual_array = np.load(scrubbed_files[0])
                 dat['scrubbed'] = True
             else:
                 scrubbed_quality = np.full(np.shape(self.unique_clusters), np.NaN)
-                np.save(f'scrubbed_quality_{start_block}.npy', scrubbed_quality)
+                # np.save(f'scrubbed_quality_{start_block}.npy', scrubbed_quality)
+                np.save('scrubbed_quality_{:d}.npy'.format(start_block),
+                                                           scrubbed_quality)
                 self.scrubbed_qual_array = scrubbed_quality
                 dat['scrubbed'] = False
             if dat['qual']:
@@ -301,7 +309,8 @@ class neuron(object):
                     s += '\n\t{}'.format(f)
                 print(s+'\nRecording started at: {} \nNumber of clusters: {}'.format(self.clocktime_start_time, len(self.unique_clusters)))
             if dat['qual']:
-                print(f'Cell quality: {self.quality}')
+                # print(f'Cell quality: {self.quality}')
+                print('Cell quality: {:d}'.format(self.quality))
             print('\n')
 
 
@@ -859,7 +868,10 @@ class neuron(object):
                 if scrub_cell:
                     #always update quality if the scrub_cell flag is true
                     self.scrubbed_qual_array[self.cell_idx] = self.quality
-                    np.save(f"scrubbed_quality_{self.start_block}.npy", self.scrubbed_qual_array)
+                    # np.save(f"scrubbed_quality_{self.start_block}.npy", self.scrubbed_qual_array)
+                    np.save("scrubbed_quality_{d}.npy"
+                            .format(self.start_block),
+                            self.scrubbed_qual_array)
 
                 flag = 1
             else:
