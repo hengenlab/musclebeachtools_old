@@ -1,6 +1,3 @@
-# ~~Please do not use this musclebeachtools, currently we are doing tests~~
-###### Actually, please use this anyway, if you have errors slack me - sahara
-
 # musclebeachtools
 
 
@@ -37,7 +34,7 @@ add this line
 ### Dependencies
 Run the line below to install dependencies   
 `conda install ipython seaborn numpy scipy h5py colour pymysql traits traitsui`   
-`conda install -c https://conda.binstar.org/menpo opencv`   
+`pip install opencv-python`   
 
 ### Testing
 To test it open powershell/terminal  
