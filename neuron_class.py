@@ -112,7 +112,7 @@ class neuron(object):
                     temp_idx = int(KEYS[d]-1)
 
                     if temp_idx == -1:
-                        # print(f'this cluster was not found on block {d} of
+                        # print(f'this cluster was not found on block {:d} of
                         #       the {end_block - start_block} you are loading')
                         print('This cluster was not found on block {:6d} of \
                               the {:6d} you are loading'
@@ -221,9 +221,9 @@ class neuron(object):
                     mean_waveform = mean_waveform[clust_idx]
                     self.mean_amplitude = np.abs(np.amin(mean_waveform))
 
-                # do quality stuff
+            # do quality stuff
             # scrubbed_files = glob.glob(f'scrubbed_quality_{start_block}.npy')
-            scrubbed_files = glob.glob('scrubbed_quality_{d}.npy'
+            scrubbed_files = glob.glob('scrubbed_quality_{:d}.npy'
                                        .format(start_block))
             if len(scrubbed_files) > 0:
                 scrubbed_qual_array = np.load(scrubbed_files[0])
@@ -869,8 +869,7 @@ class neuron(object):
                     #always update quality if the scrub_cell flag is true
                     self.scrubbed_qual_array[self.cell_idx] = self.quality
                     # np.save(f"scrubbed_quality_{self.start_block}.npy", self.scrubbed_qual_array)
-                    np.save("scrubbed_quality_{d}.npy"
-                            .format(self.start_block),
+                    np.save("scrubbed_quality_{:d}.npy".format(self.start_block),
                             self.scrubbed_qual_array)
 
                 flag = 1
