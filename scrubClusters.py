@@ -54,7 +54,7 @@ def scrubClusters(datafile, rawdatadir, multi_probe, probeNumber, start_block = 
 
 
 
-def scrubClusters(datafile, start_cell=0):
+def scrubClusters2(datafile, start_cell=0):
 	os.chdir(datafile)
 	clustfiles = np.sort(glob.glob("*spike_clusters*.npy"))
 	curr_clusts=[np.load(clustfiles[i]) for i in range(1)]
