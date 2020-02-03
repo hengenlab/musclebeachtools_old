@@ -52,7 +52,8 @@ def getspikes(neuron_list,startime,stoptime):
 	for i in np.arange(n_cells):
 		print('Getting spiketimes for cell ' + str(i))
 		#get all spiketimes for cell
-		spiketimes = neuron_list[i].time
+		spiketimes = neuron_list[i].spike_time
+		spiketimes = spiketimes/25000
 		spiketimes = spiketimes[(spiketimes>startime)&(spiketimes<stoptime)]
 		spiketimes_allcells.append(spiketimes)
 	return (spiketimes_allcells)
